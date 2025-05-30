@@ -15,6 +15,6 @@ repos:
     hooks:
     # 自動修正（より積極的な修正を含む）
     -   id: ruff
-        args: [--fix, --unsafe-fixes]
+        args: [--fix]
     # コードをフォーマットする（最後に実行して一貫したスタイルを確保）
     -   id: ruff-format

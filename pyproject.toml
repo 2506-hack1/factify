@@ -22,6 +22,9 @@ pre-commit = "^4.2.0"
 # ターゲットとするPythonバージョン
 target-version = "py311"
 
+# 検査対象に含めるファイル
+include = ["*.py", "*.pyi"]
+
 # 設定するルール
 lint.select = [
     "E",  # pycodestyle errors
