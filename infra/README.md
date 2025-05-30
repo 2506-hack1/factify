@@ -1,58 +1,58 @@
+# AWS CDKインフラストラクチャ
+このディレクトリには、FastAPIアプリケーションをAWSにデプロイするためのインフラストラクチャ定義が含まれています。AWS CDK (Python) を使用して、ECS Fargate、S3、DynamoDB、API GatewayなどのAWSリソースをプロビジョニングします。
 
-# Welcome to your CDK Python project!
+## 環境変数
+CDKはAWSアカウントIDとリージョンを環境変数から取得します。明示的に指定しない場合、AWS CLIのデフォルト設定が使用されます。
+`cdk bootstrap` 前に `export` でセットしてください。
 
-This is a blank project for CDK development with Python.
+- `CDK_DEFAULT_ACCOUNT`: AWSアカウントID
+- `CDK_DEFAULT_REGION`: AWSリージョン (default: `ap-northeast-1`)
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## セットアップ
 
-This project is set up like a standard Python project.  The initialization
-process also creates a virtualenv within this project, stored under the `.venv`
-directory.  To create the virtualenv it assumes that there is a `python3`
-(or `python` for Windows) executable in your path with access to the `venv`
-package. If for any reason the automatic creation of the virtualenv fails,
-you can create the virtualenv manually.
+このディレクトリで作業を開始する前に、プロジェクトルートの `README.md` に記載されている「はじめに」の「セットアップ手順」を完了していることを確認してください。
 
-To manually create a virtualenv on MacOS and Linux:
+1.  このディレクトリに移動します。
+    ```bash
+    cd infra
+    ```
 
-```
-$ python3 -m venv .venv
-```
+2.  Pythonの仮想環境をアクティブ化します。
+    ```bash
+    source .venv/bin/activate
+    ```
+    （まだ仮想環境をセットアップしていない場合は、プロジェクトルートの `README.md` を参照してください。）
 
-After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
+## CDKコマンド
 
-```
-$ source .venv/bin/activate
-```
+仮想環境をアクティブ化した状態で、以下のCDKコマンドを実行できます。
 
-If you are a Windows platform, you would activate the virtualenv like this:
+-   **CloudFormationテンプレートの生成**
+    ```bash
+    cdk synth
+    ```
+    これは、CDKコードからAWS CloudFormationテンプレートを生成します。
 
-```
-% .venv\Scripts\activate.bat
-```
+-   **デプロイする変更点の確認 (差分)**
+    ```bash
+    cdk diff
+    ```
+    現在デプロイされているスタックと、ローカルコードの差分を表示します。
 
-Once the virtualenv is activated, you can install the required dependencies.
+-   **スタックのデプロイ**
+    ```bash
+    cdk deploy --require-approval never
+    ```
+    CloudFormationテンプレートをAWSにデプロイし、AWSリソースをプロビジョニングします。`--require-approval never` は対話的な確認をスキップします。
 
-```
-$ pip install -r requirements.txt
-```
+-   **スタックの削除**
+    ```bash
+    cdk destroy
+    ```
+    デプロイされたすべてのAWSリソースを削除します。**注意: この操作は元に戻せません。**
 
-At this point you can now synthesize the CloudFormation template for this code.
-
-```
-$ cdk synth
-```
-
-To add additional dependencies, for example other CDK libraries, just add
-them to your `setup.py` file and rerun the `pip install -r requirements.txt`
-command.
-
-## Useful commands
-
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
-
-Enjoy!
+-   **スタックの出力の表示**
+    ```bash
+    cdk outputs
+    ```
+    デプロイされたスタックによってエクスポートされた値（例: API GatewayのURL）を表示します。
