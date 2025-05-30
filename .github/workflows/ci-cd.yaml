@@ -31,10 +31,19 @@ jobs:
         with:
           python-version: '3.9'
 
+      - name: Install Node.js for CDK CLI
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install CDK CLI
+        run: npm install -g aws-cdk
+
       - name: Install CDK dependencies
         run: |
           python -m venv .venv
           source .venv/bin/activate
+          pip install --upgrade pip
           pip install -r requirements.txt
         working-directory: ./infra
 
