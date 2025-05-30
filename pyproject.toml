@@ -23,6 +23,7 @@ target-version = "py311"
 
 # 設定するルール
 lint.select = [
+    "E",  # pycodestyle errors
     "F",   # pyflakes
     "I",   # isort
     "B",   # flake8-bugbear
