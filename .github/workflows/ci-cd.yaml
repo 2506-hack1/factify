@@ -1,0 +1,73 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: ap-northeast-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: github-actions-cdk-deploy-session
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install CDK dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+        working-directory: ./infra
+
+      - name: Install FastAPI app dependencies (for Docker build)
+        run: |
+          pip install -r requirements.txt
+        working-directory: ./api
+
+      - name: CDK Bootstrap (if not already bootstrapped)
+        run: |
+          source .venv/bin/activate
+          cdk bootstrap --app "python3 app.py"
+        working-directory: ./infra
+
+      - name: CDK Synth and Deploy
+        run: |
+          source .venv/bin/activate
+          cdk deploy --require-approval never --app "python3 app.py"
+        working-directory: ./infra
+
+      - name: Capture CDK Outputs
+        run: |
+          source .venv/bin/activate
+          cdk outputs --json --app "python3 app.py" > cdk-outputs.json
+          cat cdk-outputs.json
+        working-directory: ./infra
+
+      - name: Set API Gateway URL as Output
+        id: get_api_url
+        run: |
+          API_GATEWAY_URL=$(jq -r '.FastapiFargateCdkStack.ApiGatewayUrl' cdk-outputs.json)
+          echo "api_gateway_url=${API_GATEWAY_URL}" >> "$GITHUB_OUTPUT"
+        working-directory: ./infra
+
+    outputs:
+      api_gateway_url: ${{ steps.get_api_url.outputs.api_gateway_url }}
