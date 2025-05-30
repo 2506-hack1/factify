@@ -13,8 +13,8 @@ repos:
     # Ruffのバージョンは、pyproject.tomlのruffバージョンと合わせることが望ましい
     rev: v0.11.12
     hooks:
-    # コードをフォーマットする
-    -   id: ruff-format
-    # リンターとして実行
+    # 自動修正（より積極的な修正を含む）
     -   id: ruff
-        args: [--fix]
+        args: [--fix, --unsafe-fixes]
+    # コードをフォーマットする（最後に実行して一貫したスタイルを確保）
+    -   id: ruff-format
