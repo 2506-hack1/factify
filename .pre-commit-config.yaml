@@ -15,6 +15,8 @@ repos:
     hooks:
     # 自動修正（より積極的な修正を含む）
     -   id: ruff
-        args: [--fix]
+        args: [--fix, --unsafe-fixes]
+        files: ^(app/src|app/tests)/.*\.py$
     # コードをフォーマットする（最後に実行して一貫したスタイルを確保）
     -   id: ruff-format
+        files: ^(app/src|app/tests)/.*\.py$

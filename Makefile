@@ -1,36 +1,30 @@
-.PHONY: run dev format lint check install clean help
+.PHONY: setup app help
 
 # デフォルトのターゲット
 .DEFAULT_GOAL := help
 
-# 変数定義
-PORT ?= 8000
-HOST ?= 127.0.0.1
-RELOAD ?= --reload
-APP_MODULE = src.factify:app
+# セットアップ
+setup: ## pre-commitフックをインストールします
+	pip install pre-commit
+	pre-commit install
 
-run:
-	poetry run uvicorn $(APP_MODULE) --host $(HOST) --port $(PORT) $(RELOAD)
+# アプリ関連のコマンド
+app-setup: ## アプリケーションの依存関係をインストールします
+	cd app && poetry install
 
-prod:
-	poetry run uvicorn $(APP_MODULE) --host $(HOST) --port $(PORT)
+app-run: ## アプリケーションを実行します
+	cd app && make run
 
-format:
-	poetry run ruff format src/ tests/
+app-format: ## アプリケーションのコードをフォーマットします
+	cd app && make format
 
-lint:
-	poetry run ruff check src/ tests/
+app-lint: ## アプリケーションのコードをリントします
+	cd app && make lint
 
-fix:
-	poetry run ruff check --fix src/ tests/
-
-install:
-	poetry install
-	poetry run pre-commit install
-
-# pycacheファイルなどをクリーン
-clean:
-	find . -type d -name "__pycache__" -exec rm -rf {} +
-	find . -type d -name ".pytest_cache" -exec rm -rf {} +
-	find . -type d -name ".ruff_cache" -exec rm -rf {} +
-	find . -type f -name "*.pyc" -delete
+# ヘルプ
+help: ## このヘルプメッセージを表示します
+	@echo "使用方法:"
+	@echo "  make [target]"
+	@echo ""
+	@echo "利用可能なターゲット:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'

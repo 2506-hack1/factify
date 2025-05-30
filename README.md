@@ -1,16 +1,22 @@
-# factify
+# Factify モノレポ
 
-## setup
-開発開始時に必ず行ってください。
+このリポジトリはFactifyプロジェクトのモノレポです。
+
+## プロジェクト構成
+
+- `app/` - FastAPIアプリケーション
+- （将来的に他のサービスやパッケージを追加予定）
+
+## セットアップ手順
+
+### 1. ルートのpre-commitフックをインストールする
+
 ```sh
-make install
+# ルートディレクトリで実行
+pip install pre-commit
+pre-commit install
 ```
 
-## formatting
-### 手動でRuffを実行する
+### 2. アプリケーションの開発
 
-```sh
-make format
-make lint
-make fix   # lint + format
-```
+アプリケーションのセットアップと開発については、`app/README.md`を参照してください。
