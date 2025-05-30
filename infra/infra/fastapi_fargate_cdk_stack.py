@@ -1,15 +1,6 @@
 from aws_cdk import (
     Stack,
     aws_ecr as ecr,
-    aws_ec2 as ec2,
-    aws_ecs as ecs,
-    aws_ecs_patterns as ecs_patterns,
-    aws_s3 as s3,
-    aws_dynamodb as dynamodb,
-    aws_apigatewayv2_alpha as apigw,
-    aws_apigatewayv2_integrations_alpha as integrations,
-    aws_iam as iam,
-    Duration,
 )
 from aws_cdk.aws_ecr_assets import DockerImageAsset
 

@@ -8,7 +8,13 @@ import aws_cdk as cdk
 from infra.fastapi_fargate_cdk_stack import FastapiFargateCdkStack
 
 app = cdk.App()
+target_env = cdk.Environment(
+    account=os.getenv('CDK_DEFAULT_ACCOUNT'),
+    region="ap-northeast-1"
+)
+
 FastapiFargateCdkStack(app, "FastapiFargateCdkStack",
+    env=target_env,
     # If you don't specify 'env', this stack will be environment-agnostic.
     # Account/Region-dependent features and context will be lazily evaluated
     # at deploy time.
