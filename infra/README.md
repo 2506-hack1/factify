@@ -6,7 +6,7 @@
 ## セットアップ
 ```bash
 # 依存関係のインストール
-poetry install
+make install
 ```
 
 ### Makefileを使用する場合
