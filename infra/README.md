@@ -4,9 +4,6 @@
 このプロジェクトはAWS CDKを使用してFactifyのインフラを管理します。
 
 ## セットアップ
-### Poetry を使用したセットアップ
-このプロジェクトはPoetryを使用して依存関係を管理しています。まだPoetryがインストールされていない場合は、[Poetry公式サイト](https://python-poetry.org/docs/#installation)の手順に従ってインストールしてください。
-
 ```bash
 # 依存関係のインストール
 poetry install
