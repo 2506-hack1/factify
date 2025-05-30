@@ -1,4 +1,4 @@
-.PHONY: setup app help
+.PHONY: setup app infra help
 
 .DEFAULT_GOAL := help
 
@@ -17,3 +17,18 @@ app-format:
 
 app-lint:
 	cd app && make lint
+
+infra-setup:
+	cd infra && poetry install
+
+infra-test:
+	cd infra && make test
+
+infra-synth:
+	cd infra && make synth
+
+infra-deploy:
+	cd infra && make deploy
+
+infra-destroy:
+	cd infra && make destroy
