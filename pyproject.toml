@@ -3,9 +3,9 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "factify-monorepo"
+name = "factify"
 version = "0.1.0"
-description = "Factify モノレポ"
+description = ""
 readme = "README.md"
 authors = []
 
@@ -14,5 +14,3 @@ python = ">=3.11"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.2.0"
-
-# pre-commitの設定は.pre-commit-config.yamlに記述されています
