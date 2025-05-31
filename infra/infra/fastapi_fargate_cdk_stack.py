@@ -19,7 +19,7 @@ class FastapiFargateCdkStack(Stack):
         # リソース全体を囲むネットワーク
         # https://envader.plus/article/76
         vpc = ec2.Vpc(self, "FastApiVpc",
-            max_azs=1, 
+            max_azs=2, 
             nat_gateways=1
         )
 
@@ -36,8 +36,11 @@ class FastapiFargateCdkStack(Stack):
         # ECRはDockerイメージを保存するためのサービス
         # ここでのリポジトリは、Docker イメージ等を保存するスペースを指す
         # https://qiita.com/shate/items/a24ae736bcd91787801c
-        repository = ecr.Repository(self, "FastApiAppRepository",
-            repository_name="fastapi-app",
+        # 既存のリポジトリを参照する
+        repository = ecr.Repository.from_repository_name(
+            self, 
+            "FastApiAppRepository",
+            repository_name="fastapi-app"
         )
 
         # 4. Docker Image Asset
