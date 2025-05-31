@@ -19,8 +19,8 @@ class FastapiFargateCdkStack(Stack):
         # リソース全体を囲むネットワーク
         # https://envader.plus/article/76
         vpc = ec2.Vpc(self, "FastApiVpc",
-            max_azs=2,  # 2つのアベイラビリティゾーンを使用
-            nat_gateways=1  # コスト削減のためNAT Gatewayは1つ
+            max_azs=1, 
+            nat_gateways=1
         )
 
         # 2. ECS Cluster
