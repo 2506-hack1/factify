@@ -7,7 +7,7 @@ import os
 import uuid
 from datetime import datetime
 import io
-import PyPDF2
+import fitz  # PyMuPDF
 
 app = FastAPI()
 
@@ -108,28 +108,29 @@ def extract_content_by_type(file_content: bytes, content_type: str) -> Tuple[str
         
     elif content_type == 'application/pdf':
         # PDFファイルの場合
-        pdf_file = io.BytesIO(file_content)
-        
         try:
-            pdf_reader = PyPDF2.PdfReader(pdf_file)
-            page_count = len(pdf_reader.pages)
+            # PyMuPDFを使用してPDFを開く
+            pdf_document = fitz.open(stream=file_content, filetype="pdf")
+            page_count = len(pdf_document)
             metadata['page_count'] = page_count
             
             # 全ページのテキストを抽出
             text = ""
             for page_num in range(page_count):
-                page = pdf_reader.pages[page_num]
-                text += page.extract_text() + " "
+                page = pdf_document[page_num]
+                text += page.get_text() + " "
                 
             metadata['character_count'] = len(text)
             
             # PDFのメタデータを取得
-            if pdf_reader.metadata:
-                for key, value in pdf_reader.metadata.items():
-                    if key.startswith('/'):
-                        clean_key = key[1:].lower()  # スラッシュを削除して小文字に
+            pdf_metadata = pdf_document.metadata
+            if pdf_metadata:
+                for key, value in pdf_metadata.items():
+                    if value:  # 空でない値のみ保存
+                        clean_key = key.lower()
                         metadata[f'pdf_{clean_key}'] = str(value)
             
+            pdf_document.close()
             return text, metadata
             
         except Exception as e:
