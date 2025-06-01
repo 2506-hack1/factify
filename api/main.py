@@ -95,8 +95,6 @@ def extract_content_by_type(file_content: bytes, content_type: str) -> Tuple[str
 # 対応しているファイルタイプのリスト
 SUPPORTED_FILE_TYPES = [
     'text/plain',
-    'text/markdown',
-    'text/csv',
     'application/pdf'
 ]
 
@@ -136,7 +134,7 @@ async def upload_file(
         
         # UUIDを生成してS3のキーとして使用
         file_id = str(uuid.uuid4())
-        s3_key = f"files/{file_id}.{file_extension}"
+        s3_key = f"data/{file_id}.{file_extension}"
         
         # S3にファイルをアップロード
         s3_client.upload_fileobj(
