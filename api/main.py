@@ -52,8 +52,10 @@ async def upload_file(
             raise HTTPException(status_code=400, detail="テキストファイルのみアップロード可能です")
         
         # ファイル名と拡張子を取得
-        file_name = file.filename
-        file_extension = os.path.splitext(file_name)[1].lower().lstrip('.')
+        original_file_name = file.filename
+        file_name_parts = os.path.splitext(original_file_name)
+        file_name = file_name_parts[0]  # 拡張子なしのファイル名
+        file_extension = file_name_parts[1].lower().lstrip('.')  # 拡張子（ピリオドなし）
         
         # UUIDを生成してS3のキーとして使用
         file_id = str(uuid.uuid4())
