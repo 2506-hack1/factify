@@ -17,14 +17,13 @@ class DbStorageStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         # DynamoDBテーブルの作成
-        # 注: パーティションキーやソートキーは要件に応じて変更してください
         self.table = dynamodb.Table(
             self, 
             "FactifyTable",
             table_name="factify-dynamodb-table",
             partition_key=dynamodb.Attribute(
                 name="id", 
-                type=dynamodb.AttributeType.STRING
+                type=dynamodb.AttributeType.STRING  # UUID
             ),
             
             # 課金モード
@@ -33,6 +32,17 @@ class DbStorageStack(Stack):
             # 削除ポリシー
             # DEBUG: 本番では SNAPSHOT/RETAIN
             removal_policy=RemovalPolicy.DESTROY,
+        )
+        
+        # GSI（Global Secondary Index）の追加    
+        # タイトルによる検索を効率化するためのインデックス
+        self.table.add_global_secondary_index(
+            index_name="TitleIndex",
+            partition_key=dynamodb.Attribute(
+                name="title",
+                type=dynamodb.AttributeType.STRING
+            ),
+            projection_type=dynamodb.ProjectionType.ALL
         )
 
         # S3バケットの作成
