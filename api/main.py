@@ -1,12 +1,13 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
-from typing import Optional
+from typing import Optional, Dict, Any, List, Tuple
 import re
 import boto3
 import os
 import uuid
 from datetime import datetime
 import io
+import PyPDF2
 
 app = FastAPI()
 
@@ -30,6 +31,75 @@ def clean_text(raw_text: str) -> str:
     text = re.sub(r" +", " ", text)
     return text.strip()
 
+# ファイルの種類に応じたコンテンツ抽出関数
+def extract_content_by_type(file_content: bytes, content_type: str) -> Tuple[str, Dict[str, Any]]:
+    """
+    ファイルの種類に応じてコンテンツを抽出し、テキストとメタデータを返す
+    
+    Parameters:
+    -----------
+    file_content : bytes
+        ファイルの内容
+    content_type : str
+        ファイルのMIMEタイプ
+        
+    Returns:
+    --------
+    Tuple[str, Dict[str, Any]]
+        (抽出されたテキスト, メタデータ辞書)
+    """
+    metadata = {}
+    
+    if content_type.startswith('text/'):
+        # テキストファイルの場合
+        text = file_content.decode('utf-8')
+        metadata['page_count'] = 1
+        metadata['character_count'] = len(text)
+        return text, metadata
+        
+    elif content_type == 'application/pdf':
+        # PDFファイルの場合
+        pdf_file = io.BytesIO(file_content)
+        
+        try:
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            page_count = len(pdf_reader.pages)
+            metadata['page_count'] = page_count
+            
+            # 全ページのテキストを抽出
+            text = ""
+            for page_num in range(page_count):
+                page = pdf_reader.pages[page_num]
+                text += page.extract_text() + " "
+                
+            metadata['character_count'] = len(text)
+            
+            # PDFのメタデータを取得
+            if pdf_reader.metadata:
+                for key, value in pdf_reader.metadata.items():
+                    if key.startswith('/'):
+                        clean_key = key[1:].lower()  # スラッシュを削除して小文字に
+                        metadata[f'pdf_{clean_key}'] = str(value)
+            
+            return text, metadata
+            
+        except Exception as e:
+            # PDFの解析に失敗した場合
+            print(f"PDF解析エラー: {str(e)}")
+            return "", {"error": str(e)}
+    
+    else:
+        # サポートされていないファイルタイプ
+        return "", {"error": f"サポートされていないファイルタイプ: {content_type}"}
+
+# 対応しているファイルタイプのリスト
+SUPPORTED_FILE_TYPES = [
+    'text/plain',
+    'text/markdown',
+    'text/csv',
+    'application/pdf'
+]
+
 @app.get("/")
 async def read_root():
   return HTMLResponse("<h1>Hello from FastAPI on Fargate!</h1>")
@@ -41,15 +111,19 @@ async def upload_file(
     description: Optional[str] = Form(None)
 ):
     """
-    テキストファイルをアップロードしてS3に保存し、メタデータをDynamoDBに格納します
+    ファイルをアップロードしてS3に保存し、メタデータをDynamoDBに格納します
+    対応ファイル形式：テキスト、PDF
     """
     try:
         # ファイルの内容を読み込む
         file_content = await file.read()
         
-        # ファイルタイプの確認（今回はテキストファイルのみ受け付ける）
-        if not file.content_type.startswith('text/'):
-            raise HTTPException(status_code=400, detail="テキストファイルのみアップロード可能です")
+        # ファイルタイプの確認
+        if file.content_type not in SUPPORTED_FILE_TYPES:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"サポートされていないファイルタイプです。対応形式: {', '.join(SUPPORTED_FILE_TYPES)}"
+            )
         
         # ファイル名と拡張子を取得
         original_file_name = file.filename
@@ -57,9 +131,12 @@ async def upload_file(
         file_name = file_name_parts[0]  # 拡張子なしのファイル名
         file_extension = file_name_parts[1].lower().lstrip('.')  # 拡張子（ピリオドなし）
         
+        # ファイルの内容からテキストとメタデータを抽出
+        extracted_text, file_metadata = extract_content_by_type(file_content, file.content_type)
+        
         # UUIDを生成してS3のキーとして使用
         file_id = str(uuid.uuid4())
-        s3_key = f"texts/{file_id}.{file_extension}"
+        s3_key = f"files/{file_id}.{file_extension}"
         
         # S3にファイルをアップロード
         s3_client.upload_fileobj(
@@ -80,7 +157,10 @@ async def upload_file(
             "file_type": file_extension,
             "uploaded_at": uploaded_at,
             "title": title,
-            "description": description or ""
+            "description": description or "",
+            "content_type": file.content_type,
+            # 抽出したメタデータも追加
+            "extracted_metadata": file_metadata
         }
         
         table.put_item(Item=item)
@@ -95,3 +175,115 @@ async def upload_file(
     except Exception as e:
         print(f"Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"アップロード中にエラーが発生しました: {str(e)}")
+
+@app.get("/files/{file_id}", response_model=dict)
+async def get_file(file_id: str):
+    """
+    特定のファイルのメタデータとコンテンツを取得します
+    """
+    try:
+        # DynamoDBからメタデータを取得
+        response = table.get_item(Key={"id": file_id})
+        item = response.get('Item')
+        
+        if not item:
+            raise HTTPException(status_code=404, detail="ファイルが見つかりません")
+        
+        # S3からファイルコンテンツを取得
+        s3_key = item["s3_key"]
+        s3_response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=s3_key)
+        content_type = s3_response.get('ContentType', '')
+        
+        # ファイルの内容を読み込む
+        file_content = s3_response['Body'].read()
+        
+        # ファイルタイプに応じてコンテンツを抽出
+        extracted_text, _ = extract_content_by_type(file_content, content_type)
+        
+        # 整形されたテキスト
+        cleaned_content = clean_text(extracted_text) if extracted_text else ""
+        
+        # ファイルの内容をエンコード（テキストファイルの場合のみ）
+        if content_type.startswith('text/'):
+            file_content_str = file_content.decode('utf-8')
+        else:
+            file_content_str = "(バイナリコンテンツは表示できません)"
+        
+        return {
+            "metadata": {
+                "id": item["id"],
+                "file_name": item["file_name"],
+                "title": item["title"],
+                "description": item.get("description", ""),
+                "uploaded_at": item["uploaded_at"],
+                "file_type": item["file_type"],
+                "content_type": item.get("content_type", ""),
+                "extracted_metadata": item.get("extracted_metadata", {})
+            },
+            "content": file_content_str if content_type.startswith('text/') else extracted_text,
+            "cleaned_content": cleaned_content
+        }
+        
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"ファイルの取得中にエラーが発生しました: {str(e)}")
+
+
+@app.get("/files/", response_model=list)
+async def list_files():
+    """
+    アップロードされたファイルの一覧を取得します
+    """
+    try:
+        response = table.scan()
+        items = response.get('Items', [])
+        
+        # 必要に応じて結果を加工
+        files = []
+        for item in items:
+            files.append({
+                "id": item["id"],
+                "file_name": item["file_name"],
+                "title": item["title"],
+                "description": item.get("description", ""),
+                "uploaded_at": item["uploaded_at"],
+                "file_type": item["file_type"],
+                "content_type": item.get("content_type", "")
+            })
+        
+        return files
+    
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"ファイル一覧の取得中にエラーが発生しました: {str(e)}")
+
+
+@app.delete("/files/{file_id}", response_model=dict)
+async def delete_file(file_id: str):
+    """
+    ファイルとそのメタデータを削除します
+    """
+    try:
+        # まずDynamoDBからメタデータを取得
+        response = table.get_item(Key={"id": file_id})
+        item = response.get('Item')
+        
+        if not item:
+            raise HTTPException(status_code=404, detail="ファイルが見つかりません")
+        
+        # S3からファイルを削除
+        s3_key = item["s3_key"]
+        s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=s3_key)
+        
+        # DynamoDBからメタデータを削除
+        table.delete_item(Key={"id": file_id})
+        
+        return {
+            "success": True,
+            "message": "ファイルが削除されました",
+            "file_id": file_id
+        }
+        
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"ファイルの削除中にエラーが発生しました: {str(e)}")
