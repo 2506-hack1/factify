@@ -61,5 +61,5 @@ jobs:
       - name: CDK Synth and Deploy
         run: |
           source .venv/bin/activate
-          cdk deploy --require-approval never --app "python3 app.py"
+          cdk deploy --all --require-approval never --app "python3 app.py"
         working-directory: ./infra
