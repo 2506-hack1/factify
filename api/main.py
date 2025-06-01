@@ -31,6 +31,55 @@ def clean_text(raw_text: str) -> str:
     text = re.sub(r" +", " ", text)
     return text.strip()
 
+def format(content: str, metadata: Dict[str, Any]) -> str:
+    """
+    AIモデル用にテキストを構造化して整形する
+    
+    Parameters:
+    -----------
+    content : str
+        抽出されたテキスト内容
+    metadata : Dict[str, Any]
+        メタデータ辞書
+    
+    Returns:
+    --------
+    str
+        AI用に整形されたテキスト
+    """
+    # テキストを正規化
+    cleaned_content = clean_text(content)
+    
+    # 構造化されたフォーマットを作成
+    formatted_text = f"TITLE: {metadata.get('title', '無題')}\n\n"
+    
+    if 'description' in metadata and metadata['description']:
+        formatted_text += f"DESCRIPTION: {metadata['description']}\n\n"
+        
+    formatted_text += f"CONTENT:\n{cleaned_content}\n\n"
+    
+    # 重要なメタデータを追加
+    formatted_text += "METADATA:\n"
+    
+    # ファイルタイプに応じたメタデータを追加
+    if metadata.get('file_type') == 'pdf':
+        if 'page_count' in metadata:
+            formatted_text += f"- ページ数: {metadata['page_count']}\n"
+        # PDF特有のメタデータを追加
+        for key, value in metadata.items():
+            if key.startswith('pdf_') and key != 'pdf_title' and value:
+                formatted_text += f"- {key[4:].capitalize()}: {value}\n"
+    
+    # 文字数
+    if 'character_count' in metadata:
+        formatted_text += f"- 文字数: {metadata['character_count']}\n"
+        
+    # 作成日時
+    if 'uploaded_at' in metadata:
+        formatted_text += f"- アップロード日時: {metadata['uploaded_at']}\n"
+    
+    return formatted_text
+
 # ファイルの種類に応じたコンテンツ抽出関数
 def extract_content_by_type(file_content: bytes, content_type: str) -> Tuple[str, Dict[str, Any]]:
     """
@@ -146,20 +195,35 @@ async def upload_file(
                     # PDFにタイトルがない場合はファイル名を使用
                     auto_title = file_name
         
-        # UUIDを生成してS3のキーとして使用
+        # UUIDを生成して使用
         file_id = str(uuid.uuid4())
-        s3_key = f"data/{file_id}.{file_extension}"
-        
-        # S3にファイルをアップロード
-        s3_client.upload_fileobj(
-            io.BytesIO(file_content),
-            S3_BUCKET_NAME,
-            s3_key,
-            ExtraArgs={"ContentType": file.content_type}
-        )
         
         # 現在のタイムスタンプをISO 8601形式で取得
         uploaded_at = datetime.utcnow().isoformat()
+        
+        # AIモデル用にテキストデータを整形
+        metadata_for_ai = {
+            "title": auto_title,
+            "description": description or "",
+            "file_type": file_extension,
+            "file_name": file_name,
+            "uploaded_at": uploaded_at,
+            **file_metadata
+        }
+        
+        # AI用に整形したテキストを生成
+        formatted_text = format(extracted_text, metadata_for_ai)
+        
+        # S3キーを生成（拡張子をtxtに変更）
+        s3_key = f"data/{file_id}.txt"
+        
+        # S3に整形済みテキストをアップロード
+        s3_client.put_object(
+            Body=formatted_text,
+            Bucket=S3_BUCKET_NAME,
+            Key=s3_key,
+            ContentType='text/plain'
+        )
         
         # DynamoDBにメタデータを保存
         item = {
