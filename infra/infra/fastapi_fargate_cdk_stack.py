@@ -12,7 +12,7 @@ from constructs import Construct
 
 class FastapiFargateCdkStack(Stack):
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, db_storage_stack=None, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         # 1. VPC (Virtual Private Cloud)
@@ -141,6 +141,10 @@ class FastapiFargateCdkStack(Stack):
 
         # サービスをターゲットグループに登録
         service.attach_to_application_target_group(target_group)
+
+        # DbStorageStackが指定されている場合、タスクロールにS3とDynamoDBへのアクセス権限を付与
+        if db_storage_stack:
+            db_storage_stack.grant_access_to_task_role(task_definition.task_role)
 
         # 13. Output - ALB URL
         CfnOutput(self, "LoadBalancerUrl",

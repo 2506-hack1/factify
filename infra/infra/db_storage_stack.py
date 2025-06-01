@@ -61,3 +61,13 @@ class DbStorageStack(Stack):
             # パブリックアクセスをブロック（セキュリティのベストプラクティス）
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
         )
+
+    def grant_access_to_task_role(self, task_role):
+        """
+        指定されたタスクロールにS3バケットとDynamoDBテーブルへのアクセス権限を付与する
+        """
+        # S3バケットへのアクセス権限を付与
+        self.bucket.grant_read_write(task_role)
+        
+        # DynamoDBテーブルへのアクセス権限を付与
+        self.table.grant_read_write_data(task_role)

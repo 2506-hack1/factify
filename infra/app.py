@@ -14,12 +14,15 @@ target_env = cdk.Environment(
     region="ap-northeast-1"
 )
 
-FastapiFargateCdkStack(app, "FastapiFargateCdkStack",
+# まずDbStorageStackをデプロイ
+db_storage_stack = DbStorageStack(app, "DbStorageStack",
     env=target_env,
 )
 
-DbStorageStack(app, "DbStorageStack",
+# FastapiFargateCdkStackにDbStorageStackを渡す
+FastapiFargateCdkStack(app, "FastapiFargateCdkStack",
     env=target_env,
+    db_storage_stack=db_storage_stack,
 )
 
 app.synth()
