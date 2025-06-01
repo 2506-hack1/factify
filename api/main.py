@@ -132,6 +132,20 @@ async def upload_file(
         # ファイルの内容からテキストとメタデータを抽出
         extracted_text, file_metadata = extract_content_by_type(file_content, file.content_type)
         
+        # ファイルタイプに応じてタイトルを生成
+        auto_title = title
+        if title == "" or title is None:
+            if file.content_type.startswith('text/'):
+                # テキストファイルの場合、最初の20文字をタイトルとして使用
+                auto_title = extracted_text[:20] + ("..." if len(extracted_text) > 20 else "")
+            elif file.content_type == 'application/pdf':
+                # PDFファイルの場合、メタデータからタイトルを抽出
+                if 'pdf_title' in file_metadata:
+                    auto_title = file_metadata['pdf_title']
+                else:
+                    # PDFにタイトルがない場合はファイル名を使用
+                    auto_title = file_name
+        
         # UUIDを生成してS3のキーとして使用
         file_id = str(uuid.uuid4())
         s3_key = f"data/{file_id}.{file_extension}"
@@ -154,7 +168,7 @@ async def upload_file(
             "file_name": file_name,
             "file_type": file_extension,
             "uploaded_at": uploaded_at,
-            "title": title,
+            "title": auto_title,
             "description": description or "",
             "content_type": file.content_type,
             # 抽出したメタデータも追加
