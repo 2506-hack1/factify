@@ -220,10 +220,10 @@ async def upload_file(
         
         # S3に整形済みテキストをアップロード
         s3_client.put_object(
-            Body=formatted_text,
+            Body=formatted_text.encode('utf-8'),
             Bucket=S3_BUCKET_NAME,
             Key=s3_key,
-            ContentType='text/plain'
+            ContentType='text/plain; charset=utf-8'
         )
         
         # DynamoDBにメタデータを保存
