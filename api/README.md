@@ -40,11 +40,11 @@ S3へのファイルアップロード機能と、DynamoDBへのアイテム保�
 
 2.  Uvicornを使ってFastAPIアプリケーションを起動します。
     ```bash
-    uvicorn main:app --reload --host 0.0.0.0 --port 8000
+    uvicorn main:app --reload --host 0.0.0.0 --port 8080
     ```
     `--reload` オプションは、コード変更時に自動的にサーバーを再起動します。
 
-3.  ブラウザで `http://localhost:8000` にアクセスすると、FastAPIの動作を確認できます。
+3.  ブラウザで `http://localhost:8080` にアクセスすると、FastAPIの動作を確認できます。
 
 ### Dockerを使ったローカル実行 (オプション)
 
