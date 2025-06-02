@@ -11,12 +11,14 @@ import fitz  # PyMuPDF
 from docx import Document
 from bs4 import BeautifulSoup
 
-app = FastAPI()
+from config import (
+    REGION_NAME, 
+    DYNAMODB_TABLE_NAME, 
+    S3_BUCKET_NAME,
+    SUPPORTED_FILE_TYPES
+)
 
-# AWSリソース設定
-REGION_NAME = "ap-northeast-1"
-DYNAMODB_TABLE_NAME = "factify-dynamodb-table"
-S3_BUCKET_NAME = "factify-s3-bucket"
+app = FastAPI()
 
 # AWS クライアント初期化
 s3_client = boto3.client('s3', region_name=REGION_NAME)
@@ -251,13 +253,7 @@ def extract_content_by_type(file_content: bytes, content_type: str) -> Tuple[str
         # サポートされていないファイルタイプ
         return "", {"error": f"サポートされていないファイルタイプ: {content_type}"}
 
-# 対応しているファイルタイプのリスト
-SUPPORTED_FILE_TYPES = [
-    'text/plain',
-    'text/html',
-    'application/pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-]
+
 
 @app.get("/")
 async def read_root():
