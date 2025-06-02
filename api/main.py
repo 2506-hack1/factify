@@ -25,13 +25,9 @@ from metadata_handlers import (
     create_metadata_for_ai,
     create_dynamodb_item
 )
+from aws_services import aws_services
 
 app = FastAPI()
-
-# AWS クライアント初期化
-s3_client = boto3.client('s3', region_name=REGION_NAME)
-dynamodb_client = boto3.resource('dynamodb', region_name=REGION_NAME)
-table = dynamodb_client.Table(DYNAMODB_TABLE_NAME)
 
 @app.get("/")
 async def read_root():
@@ -85,12 +81,7 @@ async def upload_file(
         s3_key = f"data/{file_id}.txt"
         
         # S3に整形済みテキストをアップロード
-        s3_client.put_object(
-            Body=formatted_text.encode('utf-8'),
-            Bucket=S3_BUCKET_NAME,
-            Key=s3_key,
-            ContentType='text/plain; charset=utf-8'
-        )
+        aws_services.upload_to_s3(formatted_text, s3_key)
         
         # DynamoDBにメタデータを保存
         item = create_dynamodb_item(
@@ -98,7 +89,7 @@ async def upload_file(
             auto_title, description, file.content_type, file_metadata
         )
         
-        table.put_item(Item=item)
+        aws_services.save_to_dynamodb(item)
         
         return {
             "success": True,
