@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime
 import io
 import fitz  # PyMuPDF
+from docx import Document
 
 app = FastAPI()
 
@@ -65,10 +66,20 @@ def format(content: str, metadata: Dict[str, Any]) -> str:
     if metadata.get('file_type') == 'pdf':
         if 'page_count' in metadata:
             formatted_text += f"- ページ数: {metadata['page_count']}\n"
+
         # PDF特有のメタデータを追加
         for key, value in metadata.items():
             if key.startswith('pdf_') and key != 'pdf_title' and value:
                 formatted_text += f"- {key[4:].capitalize()}: {value}\n"
+
+    elif metadata.get('file_type') == 'docx':
+        if 'paragraph_count' in metadata:
+            formatted_text += f"- 段落数: {metadata['paragraph_count']}\n"
+            
+        # Docx特有のメタデータを追加
+        for key, value in metadata.items():
+            if key.startswith('docx_') and key != 'docx_title' and value:
+                formatted_text += f"- {key[5:].capitalize()}: {value}\n"
     
     # 文字数
     if 'character_count' in metadata:
@@ -138,6 +149,45 @@ def extract_content_by_type(file_content: bytes, content_type: str) -> Tuple[str
             print(f"PDF解析エラー: {str(e)}")
             return "", {"error": str(e)}
     
+    elif content_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        # Docxファイルの場合
+        try:
+            # python-docxを使用してDocxファイルを開く
+            docx_file = io.BytesIO(file_content)
+            document = Document(docx_file)
+            
+            # 全段落のテキストを抽出
+            text = ""
+            paragraph_count = 0
+            for paragraph in document.paragraphs:
+                if paragraph.text.strip():  # 空でない段落のみ
+                    text += paragraph.text + "\n"
+                    paragraph_count += 1
+            
+            metadata['paragraph_count'] = paragraph_count
+            metadata['character_count'] = len(text)
+            
+            # Docxのメタデータを取得
+            if document.core_properties:
+                core_props = document.core_properties
+                if core_props.title:
+                    metadata['docx_title'] = str(core_props.title)
+                if core_props.author:
+                    metadata['docx_author'] = str(core_props.author)
+                if core_props.subject:
+                    metadata['docx_subject'] = str(core_props.subject)
+                if core_props.created:
+                    metadata['docx_created'] = str(core_props.created)
+                if core_props.modified:
+                    metadata['docx_modified'] = str(core_props.modified)
+            
+            return text, metadata
+            
+        except Exception as e:
+            # Docxの解析に失敗した場合
+            print(f"Docx解析エラー: {str(e)}")
+            return "", {"error": str(e)}
+    
     else:
         # サポートされていないファイルタイプ
         return "", {"error": f"サポートされていないファイルタイプ: {content_type}"}
@@ -145,7 +195,8 @@ def extract_content_by_type(file_content: bytes, content_type: str) -> Tuple[str
 # 対応しているファイルタイプのリスト
 SUPPORTED_FILE_TYPES = [
     'text/plain',
-    'application/pdf'
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ]
 
 @app.get("/")
@@ -195,6 +246,13 @@ async def upload_file(
                 else:
                     # PDFにタイトルがない場合はファイル名を使用
                     auto_title = file_name
+            elif file.content_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                # Docxファイルの場合、メタデータからタイトルを抽出
+                if 'docx_title' in file_metadata:
+                    auto_title = file_metadata['docx_title']
+                else:
+                    # Docxにタイトルがない場合は最初の20文字を使用
+                    auto_title = extracted_text[:20] + ("..." if len(extracted_text) > 20 else "") if extracted_text else file_name
         
         # UUIDを生成して使用
         file_id = str(uuid.uuid4())
