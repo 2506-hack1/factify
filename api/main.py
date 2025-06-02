@@ -9,6 +9,7 @@ from datetime import datetime
 import io
 import fitz  # PyMuPDF
 from docx import Document
+from bs4 import BeautifulSoup
 
 app = FastAPI()
 
@@ -80,6 +81,15 @@ def format(content: str, metadata: Dict[str, Any]) -> str:
         for key, value in metadata.items():
             if key.startswith('docx_') and key != 'docx_title' and value:
                 formatted_text += f"- {key[5:].capitalize()}: {value}\n"
+                
+    elif metadata.get('file_type') == 'html':
+        if 'html_tags_count' in metadata:
+            formatted_text += f"- HTMLタグ数: {metadata['html_tags_count']}\n"
+            
+        # HTML特有のメタデータを追加
+        for key, value in metadata.items():
+            if key.startswith('html_') and key != 'html_title' and value:
+                formatted_text += f"- {key[5:].capitalize()}: {value}\n"
     
     # 文字数
     if 'character_count' in metadata:
@@ -110,12 +120,61 @@ def extract_content_by_type(file_content: bytes, content_type: str) -> Tuple[str
     """
     metadata = {}
     
-    if content_type.startswith('text/'):
-        # テキストファイルの場合
+    if content_type == 'text/plain':
+        # プレーンテキストファイルの場合
         text = file_content.decode('utf-8')
         metadata['page_count'] = 1
         metadata['character_count'] = len(text)
         return text, metadata
+        
+    elif content_type == 'text/html':
+        # HTMLファイルの場合
+        try:
+            # HTMLコンテンツをデコード
+            html_content = file_content.decode('utf-8')
+            
+            # Beautiful Soupでパース
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # メタデータを抽出
+            title_tag = soup.find('title')
+            if title_tag:
+                metadata['html_title'] = title_tag.get_text().strip()
+            
+            # メタタグからメタデータを抽出
+            meta_description = soup.find('meta', attrs={'name': 'description'})
+            if meta_description and meta_description.get('content'):
+                metadata['html_description'] = meta_description.get('content')
+                
+            meta_keywords = soup.find('meta', attrs={'name': 'keywords'})
+            if meta_keywords and meta_keywords.get('content'):
+                metadata['html_keywords'] = meta_keywords.get('content')
+                
+            meta_author = soup.find('meta', attrs={'name': 'author'})
+            if meta_author and meta_author.get('content'):
+                metadata['html_author'] = meta_author.get('content')
+            
+            # テキストコンテンツを抽出（スクリプトやスタイルは除外）
+            for script in soup(["script", "style"]):
+                script.decompose()
+            
+            # テキストを抽出
+            text = soup.get_text()
+            
+            # 行の正規化
+            lines = (line.strip() for line in text.splitlines())
+            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+            text = ' '.join(chunk for chunk in chunks if chunk)
+            
+            metadata['character_count'] = len(text)
+            metadata['html_tags_count'] = len(soup.find_all())
+            
+            return text, metadata
+            
+        except Exception as e:
+            # HTMLの解析に失敗した場合
+            print(f"HTML解析エラー: {str(e)}")
+            return "", {"error": str(e)}
         
     elif content_type == 'application/pdf':
         # PDFファイルの場合
@@ -195,6 +254,7 @@ def extract_content_by_type(file_content: bytes, content_type: str) -> Tuple[str
 # 対応しているファイルタイプのリスト
 SUPPORTED_FILE_TYPES = [
     'text/plain',
+    'text/html',
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ]
@@ -211,7 +271,7 @@ async def upload_file(
 ):
     """
     ファイルをアップロードしてS3に保存し、メタデータをDynamoDBに格納します
-    対応ファイル形式：テキスト、PDF
+    対応ファイル形式：テキスト、HTML、PDF、Docx
     """
     try:
         # ファイルの内容を読み込む
@@ -236,9 +296,16 @@ async def upload_file(
         # ファイルタイプに応じてタイトルを生成
         auto_title = title
         if title == "" or title is None:
-            if file.content_type.startswith('text/'):
-                # テキストファイルの場合、最初の20文字をタイトルとして使用
+            if file.content_type == 'text/plain':
+                # プレーンテキストファイルの場合、最初の20文字をタイトルとして使用
                 auto_title = extracted_text[:20] + ("..." if len(extracted_text) > 20 else "")
+            elif file.content_type == 'text/html':
+                # HTMLファイルの場合、メタデータからタイトルを抽出
+                if 'html_title' in file_metadata:
+                    auto_title = file_metadata['html_title']
+                else:
+                    # HTMLにタイトルがない場合は最初の20文字を使用
+                    auto_title = extracted_text[:20] + ("..." if len(extracted_text) > 20 else "") if extracted_text else file_name
             elif file.content_type == 'application/pdf':
                 # PDFファイルの場合、メタデータからタイトルを抽出
                 if 'pdf_title' in file_metadata:
