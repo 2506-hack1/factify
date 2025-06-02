@@ -4,16 +4,16 @@ from typing import Optional
 import uuid
 from datetime import datetime
 
-from config import SUPPORTED_FILE_TYPES
-from text_processors import format_for_ai
-from file_extractors import extract_content_by_type
-from metadata_handlers import (
+from src.config import SUPPORTED_FILE_TYPES
+from src.text_processors import format_for_ai
+from src.file_extractors import extract_content_by_type
+from src.metadata_handlers import (
     generate_auto_title,
     parse_filename,
     create_metadata_for_ai,
     create_dynamodb_item
 )
-from aws_services import aws_services
+from src.aws_services import aws_services
 
 app = FastAPI()
 
