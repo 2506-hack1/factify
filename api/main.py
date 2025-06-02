@@ -19,6 +19,12 @@ from config import (
 )
 from text_processors import clean_text, format_for_ai
 from file_extractors import extract_content_by_type
+from metadata_handlers import (
+    generate_auto_title,
+    parse_filename,
+    create_metadata_for_ai,
+    create_dynamodb_item
+)
 
 app = FastAPI()
 
@@ -53,41 +59,13 @@ async def upload_file(
             )
         
         # ファイル名と拡張子を取得
-        original_file_name = file.filename
-        file_name_parts = os.path.splitext(original_file_name)
-        file_name = file_name_parts[0]  # 拡張子なしのファイル名
-        file_extension = file_name_parts[1].lower().lstrip('.')  # 拡張子（ピリオドなし）
+        file_name, file_extension = parse_filename(file.filename)
         
         # ファイルの内容からテキストとメタデータを抽出
         extracted_text, file_metadata = extract_content_by_type(file_content, file.content_type)
         
         # ファイルタイプに応じてタイトルを生成
-        auto_title = title
-        if title == "" or title is None:
-            if file.content_type == 'text/plain':
-                # プレーンテキストファイルの場合、最初の20文字をタイトルとして使用
-                auto_title = extracted_text[:20] + ("..." if len(extracted_text) > 20 else "")
-            elif file.content_type == 'text/html':
-                # HTMLファイルの場合、メタデータからタイトルを抽出
-                if 'html_title' in file_metadata:
-                    auto_title = file_metadata['html_title']
-                else:
-                    # HTMLにタイトルがない場合は最初の20文字を使用
-                    auto_title = extracted_text[:20] + ("..." if len(extracted_text) > 20 else "") if extracted_text else file_name
-            elif file.content_type == 'application/pdf':
-                # PDFファイルの場合、メタデータからタイトルを抽出
-                if 'pdf_title' in file_metadata:
-                    auto_title = file_metadata['pdf_title']
-                else:
-                    # PDFにタイトルがない場合はファイル名を使用
-                    auto_title = file_name
-            elif file.content_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-                # Docxファイルの場合、メタデータからタイトルを抽出
-                if 'docx_title' in file_metadata:
-                    auto_title = file_metadata['docx_title']
-                else:
-                    # Docxにタイトルがない場合は最初の20文字を使用
-                    auto_title = extracted_text[:20] + ("..." if len(extracted_text) > 20 else "") if extracted_text else file_name
+        auto_title = generate_auto_title(title, file.content_type, extracted_text, file_metadata, file_name)
         
         # UUIDを生成して使用
         file_id = str(uuid.uuid4())
@@ -96,14 +74,9 @@ async def upload_file(
         uploaded_at = datetime.utcnow().isoformat()
         
         # AIモデル用にテキストデータを整形
-        metadata_for_ai = {
-            "title": auto_title,
-            "description": description or "",
-            "file_type": file_extension,
-            "file_name": file_name,
-            "uploaded_at": uploaded_at,
-            **file_metadata
-        }
+        metadata_for_ai = create_metadata_for_ai(
+            auto_title, description, file_extension, file_name, uploaded_at, file_metadata
+        )
         
         # AI用に整形したテキストを生成
         formatted_text = format_for_ai(extracted_text, metadata_for_ai)
@@ -120,18 +93,10 @@ async def upload_file(
         )
         
         # DynamoDBにメタデータを保存
-        item = {
-            "id": file_id,
-            "s3_key": s3_key,
-            "file_name": file_name,
-            "file_type": file_extension,
-            "uploaded_at": uploaded_at,
-            "title": auto_title,
-            "description": description or "",
-            "content_type": file.content_type,
-            # 抽出したメタデータも追加
-            "extracted_metadata": file_metadata
-        }
+        item = create_dynamodb_item(
+            file_id, s3_key, file_name, file_extension, uploaded_at, 
+            auto_title, description, file.content_type, file_metadata
+        )
         
         table.put_item(Item=item)
         
