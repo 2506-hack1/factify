@@ -1,23 +1,11 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends
-from fastapi.responses import HTMLResponse, JSONResponse
-from typing import Optional, Dict, Any, List, Tuple
-import re
-import boto3
-import os
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi.responses import HTMLResponse
+from typing import Optional
 import uuid
 from datetime import datetime
-import io
-import fitz  # PyMuPDF
-from docx import Document
-from bs4 import BeautifulSoup
 
-from config import (
-    REGION_NAME, 
-    DYNAMODB_TABLE_NAME, 
-    S3_BUCKET_NAME,
-    SUPPORTED_FILE_TYPES
-)
-from text_processors import clean_text, format_for_ai
+from config import SUPPORTED_FILE_TYPES
+from text_processors import format_for_ai
 from file_extractors import extract_content_by_type
 from metadata_handlers import (
     generate_auto_title,
