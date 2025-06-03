@@ -65,16 +65,27 @@ async def upload_file(
         # AI用に整形したテキストを生成
         formatted_text = format_for_ai(extracted_text, metadata_for_ai)
         
-        # S3キーを生成（拡張子をtxtに変更）
-        s3_key = f"data/{file_id}.txt"
+        # 拡張子に応じたS3フォルダを決定
+        folder_name = file_extension.lower()
         
-        # S3に整形済みテキストをアップロード
-        aws_services.upload_to_s3(formatted_text, s3_key)
+        # S3キーを生成（拡張子ごとのフォルダに保存）
+        s3_key = f"{folder_name}/{file_id}.{file_extension}"
         
-        # DynamoDBにメタデータを保存
+        # S3に元のファイルをアップロード
+        aws_services.upload_file_to_s3(file_content, s3_key, file.content_type)
+        
+        # DynamoDBにメタデータと整形済みテキストを保存
         item = create_dynamodb_item(
-            file_id, s3_key, file_name, file_extension, uploaded_at, 
-            auto_title, description, file.content_type, file_metadata
+            file_id=file_id, 
+            s3_key=s3_key, 
+            file_name=file_name, 
+            file_extension=file_extension, 
+            uploaded_at=uploaded_at, 
+            auto_title=auto_title, 
+            description=description, 
+            content_type=file.content_type, 
+            file_metadata=file_metadata, 
+            formatted_text=formatted_text
         )
         
         aws_services.save_to_dynamodb(item)
