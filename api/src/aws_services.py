@@ -97,22 +97,33 @@ class AWSServices:
             )
             
             items = response.get('Items', [])
+            print(f"検索結果: {len(items)}件のアイテムが見つかりました")
+            
+            # デバッグ用：最初のアイテムの構造を出力
+            if items:
+                print(f"最初のアイテム構造: {list(items[0].keys())}")
+                print(f"最初のアイテムの一部: {dict(list(items[0].items())[:3])}")
             
             # 結果を制限
             limited_items = items[:max_results]
             
-            # 検索結果を整形
+            # 検索結果を整形（DynamoDBスキーマに基づく正確なマッピング）
             search_results = []
             for item in limited_items:
+                # DynamoDBから取得した実際のフィールドをそのまま使用
                 result = {
-                    'file_id': item.get('file_id'),
-                    'filename': item.get('filename'),
-                    'language': item.get('language'),
-                    'processed_at': item.get('processed_at'),
-                    'file_type': item.get('file_type'),
-                    's3_key': item.get('s3_key'),
-                    # formatted_textの一部を返す（プレビュー用）
-                    'preview': item.get('formatted_text', '')[:200] + '...' if len(item.get('formatted_text', '')) > 200 else item.get('formatted_text', '')
+                    # SearchResultモデルに必要なフィールド
+                    'id': item['id'],  # UUID
+                    's3_key': item['s3_key'],  # string
+                    'file_name': item['file_name'],  # string
+                    'file_type': item['file_type'],  # string（拡張子）
+                    'formatted_text': item['formatted_text'],  # string
+                    'uploaded_at': item['uploaded_at'],  # date (ISO 8601)
+                    'title': item['title'],  # string
+                    'description': item['description'],  # string
+                    'extracted_metadata': item['extracted_metadata'],  # JSON
+                    # プレビュー用（オプション）
+                    'preview': item['formatted_text'][:200] + '...' if len(item['formatted_text']) > 200 else item['formatted_text']
                 }
                 search_results.append(result)
             
@@ -120,6 +131,9 @@ class AWSServices:
             
         except Exception as e:
             print(f"検索エラー: {e}")
+            print(f"エラーの詳細: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return []
 
 

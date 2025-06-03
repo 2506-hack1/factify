@@ -167,11 +167,11 @@ async def search_documents(search_request: SearchRequest):
         results = []
         for result in search_results:
             search_result = SearchResult(
-                id=result['file_id'],
+                id=result['id'],  # 正確なフィールド名
                 s3_key=result['s3_key'],
-                file_name=result['filename'],
+                file_name=result['file_name'],
                 file_type=result['file_type'],
-                formatted_text=result["formatted_text"],
+                formatted_text=result['formatted_text'],
                 uploaded_at=result['uploaded_at'],
                 title=result['title'],
                 description=result['description'],
@@ -192,3 +192,20 @@ async def search_documents(search_request: SearchRequest):
     except Exception as e:
         print(f"Search Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"検索中にエラーが発生しました: {str(e)}")
+
+@app.get("/debug/scan-all")
+async def debug_scan_all():
+    """
+    デバッグ用：DynamoDBの全データをスキャンして構造を確認
+    """
+    try:
+        response = aws_services.get_dynamodb_table().scan()
+        items = response.get('Items', [])
+        
+        return {
+            "total_items": len(items),
+            "items": items[:3] if items else [],  # 最初の3件のみ返す
+            "sample_keys": list(items[0].keys()) if items else []
+        }
+    except Exception as e:
+        return {"error": str(e)}
