@@ -3,7 +3,8 @@ AWS サービス操作モジュール
 S3とDynamoDB操作を担当
 """
 import boto3
-from typing import Dict, Any
+from boto3.dynamodb.conditions import Key, Attr
+from typing import Dict, Any, List
 from .config import REGION_NAME, DYNAMODB_TABLE_NAME, S3_BUCKET_NAME
 
 
@@ -72,6 +73,54 @@ class AWSServices:
     def get_dynamodb_table(self):
         """DynamoDBテーブルを取得（下位互換性のため）"""
         return self.table
+    
+    def search_documents(self, query: str, max_results: int = 5) -> List[Dict]:
+        """
+        DynamoDBからドキュメントを検索する
+        
+        Parameters:
+        -----------
+        query : str
+            検索クエリ
+        max_results : int
+            返す最大結果数
+            
+        Returns:
+        --------
+        List[Dict]
+            検索結果のリスト
+        """
+        try:
+            # DynamoDBでスキャンして検索
+            response = self.table.scan(
+                FilterExpression=Attr('formatted_text').contains(query),
+            )
+            
+            items = response.get('Items', [])
+            
+            # 結果を制限
+            limited_items = items[:max_results]
+            
+            # 検索結果を整形
+            search_results = []
+            for item in limited_items:
+                result = {
+                    'file_id': item.get('file_id'),
+                    'filename': item.get('filename'),
+                    'language': item.get('language'),
+                    'processed_at': item.get('processed_at'),
+                    'file_type': item.get('file_type'),
+                    's3_key': item.get('s3_key'),
+                    # formatted_textの一部を返す（プレビュー用）
+                    'preview': item.get('formatted_text', '')[:200] + '...' if len(item.get('formatted_text', '')) > 200 else item.get('formatted_text', '')
+                }
+                search_results.append(result)
+            
+            return search_results
+            
+        except Exception as e:
+            print(f"検索エラー: {e}")
+            return []
 
 
 # シングルトンインスタンス
