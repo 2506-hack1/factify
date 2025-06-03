@@ -34,6 +34,26 @@ class AWSServices:
             ContentType='text/plain; charset=utf-8'
         )
     
+    def upload_file_to_s3(self, file_content: bytes, s3_key: str, content_type: str) -> None:
+        """
+        S3にファイルをアップロードする（バイナリデータ用）
+        
+        Parameters:
+        -----------
+        file_content : bytes
+            アップロードするファイルコンテンツ
+        s3_key : str
+            S3オブジェクトキー
+        content_type : str
+            ファイルのMIMEタイプ
+        """
+        self.s3_client.put_object(
+            Body=file_content,
+            Bucket=S3_BUCKET_NAME,
+            Key=s3_key,
+            ContentType=content_type
+        )
+    
     def save_to_dynamodb(self, item: Dict[str, Any]) -> None:
         """
         DynamoDBにアイテムを保存する
