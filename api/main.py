@@ -1,6 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.responses import HTMLResponse
-from typing import Optional
+from typing import Optional, List
+from pydantic import BaseModel
 import uuid
 from datetime import datetime
 
@@ -14,6 +15,27 @@ from src.metadata_handlers import (
     create_dynamodb_item
 )
 from src.aws_services import aws_services
+
+# Pydanticモデル
+class SearchRequest(BaseModel):
+    query: str
+    language: Optional[str] = "en"
+    max_results: Optional[int] = 5
+
+class SearchResult(BaseModel):
+    file_id: str
+    filename: str
+    language: str
+    processed_at: str
+    file_type: str
+    s3_key: str
+    preview: str
+
+class SearchResponse(BaseModel):
+    success: bool
+    query: str
+    total_results: int
+    results: List[SearchResult]
 
 app = FastAPI()
 
@@ -100,3 +122,69 @@ async def upload_file(
     except Exception as e:
         print(f"Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"アップロード中にエラーが発生しました: {str(e)}")
+
+
+@app.post("/search", response_model=SearchResponse)
+async def search_documents(search_request: SearchRequest):
+    """
+    保存されたドキュメントを検索します
+    
+    Parameters:
+    -----------
+    search_request : SearchRequest
+        検索リクエスト（query: 検索語句, language: 言語コード, max_results: 最大結果数）
+    
+    Returns:
+    --------
+    SearchResponse
+        検索結果
+    """
+    try:
+        # バリデーション
+        if not search_request.query.strip():
+            raise HTTPException(status_code=400, detail="検索クエリが空です")
+        
+        if search_request.max_results < 1 or search_request.max_results > 50:
+            raise HTTPException(status_code=400, detail="max_resultsは1〜50の範囲で指定してください")
+        
+        # DynamoDBから検索
+        search_results = aws_services.search_documents(
+            query=search_request.query,
+            max_results=search_request.max_results
+        )
+        
+        # 言語フィルタリング（指定されている場合）
+        if search_request.language and search_request.language != "en":
+            filtered_results = [
+                result for result in search_results 
+                if result.get('language', 'en') == search_request.language
+            ]
+            search_results = filtered_results
+        
+        # SearchResultモデルに変換
+        results = []
+        for result in search_results:
+            search_result = SearchResult(
+                file_id=result['file_id'],
+                filename=result['filename'],
+                language=result['language'],
+                processed_at=result['processed_at'],
+                file_type=result['file_type'],
+                s3_key=result['s3_key'],
+                preview=result['preview']
+            )
+            results.append(search_result)
+        
+        return SearchResponse(
+            success=True,
+            query=search_request.query,
+            total_results=len(results),
+            results=results
+        )
+        
+    except HTTPException:
+        # HTTPExceptionはそのまま再発生
+        raise
+    except Exception as e:
+        print(f"Search Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"検索中にエラーが発生しました: {str(e)}")
