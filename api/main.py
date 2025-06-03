@@ -23,13 +23,15 @@ class SearchRequest(BaseModel):
     max_results: Optional[int] = 5
 
 class SearchResult(BaseModel):
-    file_id: str
-    filename: str
-    language: str
-    processed_at: str
-    file_type: str
+    id: str
     s3_key: str
-    preview: str
+    file_name: str
+    file_type: str
+    formatted_text: str
+    uploaded_at: str
+    title: str
+    description: str
+    extracted_metadata: dict
 
 class SearchResponse(BaseModel):
     success: bool
@@ -165,13 +167,15 @@ async def search_documents(search_request: SearchRequest):
         results = []
         for result in search_results:
             search_result = SearchResult(
-                file_id=result['file_id'],
-                filename=result['filename'],
-                language=result['language'],
-                processed_at=result['processed_at'],
-                file_type=result['file_type'],
+                id=result['file_id'],
                 s3_key=result['s3_key'],
-                preview=result['preview']
+                file_name=result['filename'],
+                file_type=result['file_type'],
+                formatted_text=result["formatted_text"],
+                uploaded_at=result['uploaded_at'],
+                title=result['title'],
+                description=result['description'],
+                extracted_metadata=result['extracted_metadata']
             )
             results.append(search_result)
         
