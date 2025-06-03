@@ -123,7 +123,8 @@ def create_metadata_for_ai(auto_title: str, description: str, file_extension: st
 
 def create_dynamodb_item(file_id: str, s3_key: str, file_name: str, file_extension: str,
                         uploaded_at: str, auto_title: str, description: str, 
-                        content_type: str, file_metadata: Dict[str, Any]) -> Dict[str, Any]:
+                        content_type: str, file_metadata: Dict[str, Any], 
+                        formatted_text: str) -> Dict[str, Any]:
     """
     DynamoDB用のアイテム辞書を作成する
     
@@ -147,6 +148,8 @@ def create_dynamodb_item(file_id: str, s3_key: str, file_name: str, file_extensi
         ファイルのMIMEタイプ
     file_metadata : Dict[str, Any]
         ファイルから抽出されたメタデータ
+    formatted_text : str
+        AI用に整形されたテキスト
         
     Returns:
     --------
@@ -162,5 +165,6 @@ def create_dynamodb_item(file_id: str, s3_key: str, file_name: str, file_extensi
         "title": auto_title,
         "description": description or "",
         "content_type": content_type,
-        "extracted_metadata": file_metadata
+        "extracted_metadata": file_metadata,
+        "formatted_text": formatted_text
     }
