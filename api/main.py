@@ -1,7 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.responses import HTMLResponse
-from typing import Optional, List
-from pydantic import BaseModel
+from typing import Optional
 import uuid
 from datetime import datetime
 
@@ -15,29 +14,7 @@ from src.metadata_handlers import (
     create_dynamodb_item
 )
 from src.aws_services import aws_services
-
-# Pydanticモデル
-class SearchRequest(BaseModel):
-    query: str
-    language: Optional[str] = "en"
-    max_results: Optional[int] = 5
-
-class SearchResult(BaseModel):
-    id: str
-    s3_key: str
-    file_name: str
-    file_type: str
-    formatted_text: str
-    uploaded_at: str
-    title: str
-    description: str
-    extracted_metadata: dict
-
-class SearchResponse(BaseModel):
-    success: bool
-    query: str
-    total_results: int
-    results: List[SearchResult]
+from src.models import Document, SearchRequest, SearchResponse, UploadResponse
 
 app = FastAPI()
 
@@ -163,10 +140,10 @@ async def search_documents(search_request: SearchRequest):
             ]
             search_results = filtered_results
         
-        # SearchResultモデルに変換
+        # Documentモデルに変換
         results = []
         for result in search_results:
-            search_result = SearchResult(
+            document = Document(
                 id=result['id'],  # 正確なフィールド名
                 s3_key=result['s3_key'],
                 file_name=result['file_name'],
@@ -177,7 +154,7 @@ async def search_documents(search_request: SearchRequest):
                 description=result['description'],
                 extracted_metadata=result['extracted_metadata']
             )
-            results.append(search_result)
+            results.append(document)
         
         return SearchResponse(
             success=True,
