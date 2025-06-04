@@ -19,7 +19,7 @@ class FastapiFargateCdkStack(Stack):
         vpc = ec2.Vpc(self, "FastApiVpc",
             max_azs=1,  # Single AZでコスト削減
             nat_gateways=0,  # NAT Gateway削除（$45.2/月削減）
-            cidr="10.20.0.0/16",  # 既存VPCと重複しない新しいCIDR
+            ip_addresses=ec2.IpAddresses.cidr("10.20.0.0/16"),  # 既存VPCと重複しない新しいCIDR
             enable_dns_hostnames=True,
             enable_dns_support=True,
             subnet_configuration=[

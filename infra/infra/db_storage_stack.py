@@ -45,11 +45,11 @@ class DbStorageStack(Stack):
             projection_type=dynamodb.ProjectionType.ALL
         )
 
-        # S3バケットの作成
+        # S3バケットの作成（バケット名は自動生成）
         self.bucket = s3.Bucket(
             self, 
             "FactifyBucket",
-            bucket_name="factify-s3-bucket",
+            # bucket_name を削除してCDKに自動生成させる（競合回避）
             
             # 暗号化
             encryption=s3.BucketEncryption.S3_MANAGED,

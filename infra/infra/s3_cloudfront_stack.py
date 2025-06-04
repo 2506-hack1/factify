@@ -3,8 +3,6 @@ from aws_cdk import (
     aws_s3 as s3,
     aws_cloudfront as cloudfront,
     aws_cloudfront_origins as origins,
-    aws_s3_deployment as s3deploy,
-    aws_iam as iam,
     CfnOutput,
     RemovalPolicy,
 )
@@ -38,7 +36,7 @@ class S3CloudFrontStack(Stack):
             self,
             "WebsiteDistribution",
             default_behavior=cloudfront.BehaviorOptions(
-                origin=origins.S3Origin(
+                origin=origins.S3BucketOrigin.with_origin_access_identity(
                     bucket=website_bucket,
                     origin_access_identity=origin_access_identity
                 ),
