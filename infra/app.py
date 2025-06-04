@@ -8,11 +8,17 @@ import aws_cdk as cdk
 from infra.fastapi_fargate_cdk_stack import FastapiFargateCdkStack
 from infra.db_storage_stack import DbStorageStack
 from infra.s3_cloudfront_stack import S3CloudFrontStack
+from infra.cognito_auth_stack import CognitoAuthStack
 
 app = cdk.App()
 target_env = cdk.Environment(
     account=os.getenv('CDK_DEFAULT_ACCOUNT'),
     region="ap-northeast-1"
+)
+
+# Cognito認証スタック（新規追加）
+cognito_stack = CognitoAuthStack(app, "CognitoAuthStack",
+    env=target_env,
 )
 
 db_storage_stack = DbStorageStack(app, "DbStorageStack",
