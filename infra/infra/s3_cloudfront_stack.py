@@ -28,27 +28,12 @@ class S3CloudFrontStack(Stack):
             auto_delete_objects=True,  # 開発環境用
         )
 
-        # CloudFront Origin Access Control (OAC)
-        oac = cloudfront.CfnOriginAccessControl(
-            self,
-            "WebsiteOAC",
-            origin_access_control_config=cloudfront.CfnOriginAccessControl.OriginAccessControlConfigProperty(
-                name="WebsiteOAC",
-                origin_access_control_origin_type="s3",
-                signing_behavior="always",
-                signing_protocol="sigv4",
-            )
-        )
-
         # CloudFront Distribution
         distribution = cloudfront.Distribution(
             self,
             "WebsiteDistribution",
             default_behavior=cloudfront.BehaviorOptions(
-                origin=origins.S3Origin(
-                    website_bucket,
-                    origin_access_control_id=oac.attr_id,
-                ),
+                origin=origins.S3Origin(website_bucket),
                 viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
             ),
@@ -70,18 +55,6 @@ class S3CloudFrontStack(Stack):
             ],
         )
 
-        # S3 bucket policy for CloudFront OAC
-        bucket_policy = iam.PolicyStatement(
-            actions=["s3:GetObject"],
-            resources=[f"{website_bucket.bucket_arn}/*"],
-            principals=[iam.ServicePrincipal("cloudfront.amazonaws.com")],
-            conditions={
-                "StringEquals": {
-                    "AWS:SourceArn": f"arn:aws:cloudfront::{self.account}:distribution/{distribution.distribution_id}"
-                }
-            }
-        )
-        website_bucket.add_to_resource_policy(bucket_policy)
 
         # Environment variables for build
         environment_variables = {}
