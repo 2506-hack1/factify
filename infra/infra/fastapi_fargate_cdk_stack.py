@@ -151,3 +151,6 @@ class FastapiFargateCdkStack(Stack):
             value=f"http://{alb.load_balancer_dns_name}",
             description="URL of the load balancer"
         )
+
+        # Store API endpoint for other stacks
+        self.api_endpoint = f"http://{alb.load_balancer_dns_name}"
