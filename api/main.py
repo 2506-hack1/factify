@@ -1,5 +1,6 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 import uuid
 from datetime import datetime
@@ -15,12 +16,57 @@ from src.metadata_handlers import (
 )
 from src.aws_services import aws_services
 from src.models import Document, SearchRequest, SearchResponse, UploadResponse
+from src.auth.cognito_auth import get_current_user_mock, get_current_user_optional, require_admin
 
 app = FastAPI()
 
+# CORS設定
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 開発用
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/")
 async def read_root():
-  return HTMLResponse("<h1>Hello from FastAPI on Fargate!</h1>")
+    return HTMLResponse("<h1>Hello from FastAPI on Fargate!</h1>")
+
+# 認証テスト用エンドポイント
+@app.get("/auth/test")
+async def test_auth(current_user: dict = Depends(get_current_user_mock)):
+    """認証テスト用エンドポイント（認証必須）"""
+    return {
+        "message": "Authentication successful",
+        "user": current_user,
+        "endpoint": "test_auth"
+    }
+
+@app.get("/auth/test-optional")
+async def test_auth_optional(current_user: Optional[dict] = Depends(get_current_user_optional)):
+    """認証オプショナルテスト用エンドポイント"""
+    if current_user:
+        return {
+            "message": "Authenticated user",
+            "user": current_user,
+            "endpoint": "test_auth_optional"
+        }
+    else:
+        return {
+            "message": "Anonymous user",
+            "user": None,
+            "endpoint": "test_auth_optional"
+        }
+
+@app.get("/auth/admin-test")
+async def test_admin(admin_user: dict = Depends(require_admin)):
+    """管理者権限テスト用エンドポイント"""
+    return {
+        "message": "Admin access successful",
+        "user": admin_user,
+        "endpoint": "test_admin"
+    }
 
 @app.post("/upload/file", response_model=dict)
 async def upload_file(
