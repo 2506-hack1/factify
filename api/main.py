@@ -1,3 +1,10 @@
+import os
+from dotenv import load_dotenv
+
+# 開発環境で.envファイルを読み込み
+if os.path.exists('.env'):
+    load_dotenv()
+
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,7 +23,7 @@ from src.metadata_handlers import (
 )
 from src.aws_services import aws_services
 from src.models import Document, SearchRequest, SearchResponse, UploadResponse
-from src.auth.cognito_auth import get_current_user_mock, get_current_user_optional, require_admin
+from src.auth.cognito_auth import get_current_user, get_current_user_mock, get_current_user_optional, require_admin
 
 app = FastAPI()
 
@@ -32,6 +39,16 @@ app.add_middleware(
 @app.get("/")
 async def read_root():
     return HTMLResponse("<h1>Hello from FastAPI on Fargate!</h1>")
+
+@app.get("/debug/config")
+async def debug_config():
+    """デバッグ用：設定確認エンドポイント"""
+    return {
+        "debug_mode": os.getenv("AUTH_DEBUG_MODE"),
+        "cognito_region": os.getenv("COGNITO_REGION"),
+        "user_pool_id_set": bool(os.getenv("COGNITO_USER_POOL_ID")),
+        "client_id_set": bool(os.getenv("COGNITO_CLIENT_ID"))
+    }
 
 # 認証テスト用エンドポイント
 @app.get("/auth/test")
