@@ -1,9 +1,8 @@
 from aws_cdk import (
     Stack,
-    aws_ecr as ecr,
     aws_ecs as ecs,
     aws_ec2 as ec2,
-    aws_elasticloadbalancingv2 as elbv2,
+    aws_applicationautoscaling as appscaling,
     CfnOutput,
 )
 from aws_cdk.aws_ecr_assets import DockerImageAsset
@@ -15,12 +14,48 @@ class FastapiFargateCdkStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, db_storage_stack=None, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # 1. VPC (Virtual Private Cloud)
+        # 1. VPC (Virtual Private Cloud) - NAT Gateway削除してコスト削減
         # リソース全体を囲むネットワーク
         # https://envader.plus/article/76
         vpc = ec2.Vpc(self, "FastApiVpc",
-            max_azs=2, 
-            nat_gateways=1
+            max_azs=1,  # Single AZでコスト削減
+            nat_gateways=0,  # NAT Gateway削除（$45.2/月削減）
+            subnet_configuration=[
+                ec2.SubnetConfiguration(
+                    name="Public",
+                    subnet_type=ec2.SubnetType.PUBLIC,
+                    cidr_mask=24
+                ),
+                ec2.SubnetConfiguration(
+                    name="Private",
+                    subnet_type=ec2.SubnetType.PRIVATE_ISOLATED,  # NAT Gateway使わない
+                    cidr_mask=24
+                )
+            ]
+        )
+
+        # VPC Endpoints - NAT Gateway代替でアウトバウンド通信
+        # S3へのアクセス用
+        vpc.add_gateway_endpoint("S3Endpoint",
+            service=ec2.GatewayVpcEndpointAwsService.S3,
+            subnets=[ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED)]
+        )
+        
+        # ECRへのアクセス用
+        vpc.add_interface_endpoint("ECREndpoint",
+            service=ec2.InterfaceVpcEndpointAwsService.ECR,
+            subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED)
+        )
+        
+        vpc.add_interface_endpoint("ECRDkrEndpoint",
+            service=ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
+            subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED)
+        )
+        
+        # CloudWatch Logs用
+        vpc.add_interface_endpoint("LogsEndpoint",
+            service=ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
+            subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED)
         )
 
         # 2. ECS Cluster
@@ -32,18 +67,7 @@ class FastapiFargateCdkStack(Stack):
             cluster_name="fastapi-cluster"
         )
 
-        # 3. ECR Repository
-        # ECRはDockerイメージを保存するためのサービス
-        # ここでのリポジトリは、Docker イメージ等を保存するスペースを指す
-        # https://qiita.com/shate/items/a24ae736bcd91787801c
-        # 既存のリポジトリを参照する
-        repository = ecr.Repository.from_repository_name(
-            self, 
-            "FastApiAppRepository",
-            repository_name="fastapi-app"
-        )
-
-        # 4. Docker Image Asset
+        # 3. Docker Image Asset
         # ローカルの Dockerfile とソースコードから Docker イメージをビルドし、ECR にプッシュするためのアセット
         image_asset = DockerImageAsset(self, 'FastApiDockerImage', 
             directory='../api'
@@ -70,87 +94,69 @@ class FastapiFargateCdkStack(Stack):
             ecs.PortMapping(container_port=80, host_port=80, protocol=ecs.Protocol.TCP)
         )
 
-        # 7. Security Group for ALB
-        # ALB はロードバランサーで、トラフィックを ECS サービスに分散する
-        # セキュリティグループは、VPC 内のリソース間のトラフィックを制御するためのファイアウォールルールを定義する
-        alb_security_group = ec2.SecurityGroup(self, "ALBSecurityGroup",
+        # 7. Security Group for ECS Service (ALB削除してパブリックアクセス用に変更)
+        # ECS サービスのセキュリティグループを定義（インターネットからの直接アクセスを許可）
+        ecs_security_group = ec2.SecurityGroup(self, "ECSSecurityGroup",
             vpc=vpc,
-            description="Security group for ALB",
+            description="Security group for ECS service - direct access",
             allow_all_outbound=True
         )
-        # 全体的に HTTP トラフィックを許可
-        alb_security_group.add_ingress_rule(
+        # インターネットからのHTTPトラフィックを直接許可
+        ecs_security_group.add_ingress_rule(
             ec2.Peer.any_ipv4(),
             ec2.Port.tcp(80),
             "Allow HTTP traffic from anywhere"
         )
 
-        # 8. Security Group for ECS Service
-        # ECS サービスのセキュリティグループを定義（ALB からのトラフィックを許可）
-        ecs_security_group = ec2.SecurityGroup(self, "ECSSecurityGroup",
-            vpc=vpc,
-            description="Security group for ECS service",
-            allow_all_outbound=True
-        )
-        # ALB からのトラフィックを許可
-        ecs_security_group.add_ingress_rule(
-            alb_security_group,
-            ec2.Port.tcp(80),
-            "Allow traffic from ALB"
-        )
-
-        # 9. Application Load Balancer
-        # ALB を作成し、インターネットからのトラフィックを受け入れる
-        alb = elbv2.ApplicationLoadBalancer(self, "FastApiALB",
-            vpc=vpc,
-            internet_facing=True,  # インターネットからのアクセスを許可
-            load_balancer_name="fastapi-alb",
-            security_group=alb_security_group
-        )
-
-        # 10. Target Group
-        # ターゲットグループは、ALB がトラフィックをルーティングする ECS サービスを定義する
-        target_group = elbv2.ApplicationTargetGroup(self, "FastApiTargetGroup",
-            vpc=vpc,
-            port=80,
-            protocol=elbv2.ApplicationProtocol.HTTP,  
-            target_type=elbv2.TargetType.IP, # ターゲットのタイプを IP に設定（Fargate では IP アドレスが使用される）
-            health_check=elbv2.HealthCheck(  # ヘルスチェックの設定
-                path="/",  # ヘルスチェックのパス
-                healthy_http_codes="200"  # ヘルスチェックが成功する HTTP ステータスコード
-            )
-        )
-
-        # 11. ALB Listener
-        # ALB が受け取るトラフィックを処理するためのエンドポイントを作成
-        listener = alb.add_listener("FastApiListener",
-            port=80,
-            protocol=elbv2.ApplicationProtocol.HTTP,
-            default_target_groups=[target_group]
-        )
-
-        # 12. ECS Fargate Service
+        # 8. ECS Fargate Service (ALB削除 - パブリックアクセス版)
         # Fargate サービスを作成し、ECS クラスターにタスク定義をデプロイ
         service = ecs.FargateService(self, "FastApiService",
             cluster=cluster,
             task_definition=task_definition,
-            desired_count=1,  # デプロイするタスクの数
+            desired_count=0,  # 初期状態は0（開発時間外）
             security_groups=[ecs_security_group],
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS)  # プライベートサブネットで実行
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),  # パブリックサブネットで実行
+            assign_public_ip=True  # パブリックIPアドレスを割り当て
         )
 
-        # サービスをターゲットグループに登録
-        service.attach_to_application_target_group(target_group)
-
-        # DbStorageStackが指定されている場合、タスクロールにS3とDynamoDBへのアクセス権限を付与
+        # 9. Auto Scaling設定（開発時間帯のみ稼働）
+        # Application Auto Scalingターゲットを作成
+        scalable_target = service.auto_scale_task_count(
+            min_capacity=0,  # 最小タスク数（開発時間外）
+            max_capacity=1   # 最大タスク数（開発時間内）
+        )
+        
+        # 時間ベースのスケーリング - 平日9時から18時まで稼働
+        # 稼働開始：平日9時（JST）= UTC 0時
+        scalable_target.scale_on_schedule("ScaleUpSchedule",
+            schedule=appscaling.Schedule.cron(
+                hour="0",    # UTC 0時 = JST 9時
+                minute="0",
+                week_day="MON-FRI"
+            ),
+            min_capacity=1,
+            max_capacity=1
+        )
+        
+        # 稼働停止：平日18時（JST）= UTC 9時
+        scalable_target.scale_on_schedule("ScaleDownSchedule",
+            schedule=appscaling.Schedule.cron(
+                hour="9",    # UTC 9時 = JST 18時
+                minute="0",
+                week_day="MON-FRI"
+            ),
+            min_capacity=0,
+            max_capacity=0
+        )
+        # 10. DbStorageStackが指定されている場合、タスクロールにS3とDynamoDBへのアクセス権限を付与
         if db_storage_stack:
             db_storage_stack.grant_access_to_task_role(task_definition.task_role)
 
-        # 13. Output - ALB URL
-        CfnOutput(self, "LoadBalancerUrl",
-            value=f"http://{alb.load_balancer_dns_name}",
-            description="URL of the load balancer"
+        # 11. Output - ECS Service情報（ALB削除のため直接IPアクセス）
+        CfnOutput(self, "ECSServiceInfo",
+            value="ECS Service deployed - Check CloudWatch for public IP",
+            description="ECS Service deployed without ALB - access via task public IP"
         )
 
-        # Store API endpoint for other stacks
-        self.api_endpoint = f"http://{alb.load_balancer_dns_name}"
+        # Store API endpoint placeholder (no fixed endpoint without ALB)
+        self.api_endpoint = "http://DYNAMIC_ECS_IP"
