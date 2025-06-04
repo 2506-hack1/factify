@@ -14,48 +14,22 @@ class FastapiFargateCdkStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, db_storage_stack=None, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # 1. VPC (Virtual Private Cloud) - NAT Gateway削除してコスト削減
-        # リソース全体を囲むネットワーク
-        # https://envader.plus/article/76
+        # 1. VPC (Virtual Private Cloud) - 最小構成でコスト削減
+        # パブリックサブネットのみの最シンプル構成
         vpc = ec2.Vpc(self, "FastApiVpc",
             max_azs=1,  # Single AZでコスト削減
             nat_gateways=0,  # NAT Gateway削除（$45.2/月削減）
+            cidr="10.20.0.0/16",  # 既存VPCと重複しない新しいCIDR
+            enable_dns_hostnames=True,
+            enable_dns_support=True,
             subnet_configuration=[
                 ec2.SubnetConfiguration(
                     name="Public",
                     subnet_type=ec2.SubnetType.PUBLIC,
                     cidr_mask=24
-                ),
-                ec2.SubnetConfiguration(
-                    name="Private",
-                    subnet_type=ec2.SubnetType.PRIVATE_ISOLATED,  # NAT Gateway使わない
-                    cidr_mask=24
                 )
+                # プライベートサブネット削除でさらにシンプル化
             ]
-        )
-
-        # VPC Endpoints - NAT Gateway代替でアウトバウンド通信
-        # S3へのアクセス用
-        vpc.add_gateway_endpoint("S3Endpoint",
-            service=ec2.GatewayVpcEndpointAwsService.S3,
-            subnets=[ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED)]
-        )
-        
-        # ECRへのアクセス用
-        vpc.add_interface_endpoint("ECREndpoint",
-            service=ec2.InterfaceVpcEndpointAwsService.ECR,
-            subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED)
-        )
-        
-        vpc.add_interface_endpoint("ECRDkrEndpoint",
-            service=ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
-            subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED)
-        )
-        
-        # CloudWatch Logs用
-        vpc.add_interface_endpoint("LogsEndpoint",
-            service=ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
-            subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED)
         )
 
         # 2. ECS Cluster
