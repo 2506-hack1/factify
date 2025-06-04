@@ -73,7 +73,7 @@ jobs:
         id: get-api-endpoint
         run: |
           source .venv/bin/activate
-          API_ENDPOINT=$(cdk list --app "python3 app.py" --json | jq -r '.[] | select(.name == "FastapiFargateCdkStack") | .outputs.LoadBalancerUrl')
+          API_ENDPOINT=$(aws cloudformation describe-stacks --stack-name FastapiFargateCdkStack --query 'Stacks[0].Outputs[?OutputKey==`LoadBalancerUrl`].OutputValue' --output text)
           echo "api_endpoint=$API_ENDPOINT" >> $GITHUB_OUTPUT
         working-directory: ./infra
 

@@ -33,7 +33,7 @@ class S3CloudFrontStack(Stack):
             self,
             "WebsiteDistribution",
             default_behavior=cloudfront.BehaviorOptions(
-                origin=origins.S3Origin(website_bucket),
+                origin=origins.S3BucketOrigin(website_bucket),
                 viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
             ),
