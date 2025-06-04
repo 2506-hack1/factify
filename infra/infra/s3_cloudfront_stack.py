@@ -20,12 +20,17 @@ class S3CloudFrontStack(Stack):
             self,
             "WebsiteBucket",
             bucket_name=f"factify-webapp-{self.account}-{self.region}",
-            website_index_document="index.html",
-            website_error_document="index.html",  # SPAのため404もindex.htmlに
             public_read_access=False,  # CloudFront経由でのみアクセス
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             removal_policy=RemovalPolicy.DESTROY,  # 開発環境用
             auto_delete_objects=True,  # 開発環境用
+        )
+
+        # Origin Access Identity for CloudFront (CDK v2 compatible approach)
+        origin_access_identity = cloudfront.OriginAccessIdentity(
+            self,
+            "WebsiteOAI",
+            comment="OAI for factify webapp"
         )
 
         # CloudFront Distribution
@@ -33,7 +38,10 @@ class S3CloudFrontStack(Stack):
             self,
             "WebsiteDistribution",
             default_behavior=cloudfront.BehaviorOptions(
-                origin=origins.S3BucketOrigin(website_bucket),
+                origin=origins.S3Origin(
+                    bucket=website_bucket,
+                    origin_access_identity=origin_access_identity
+                ),
                 viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
             ),
@@ -54,6 +62,9 @@ class S3CloudFrontStack(Stack):
                 ),
             ],
         )
+
+        # Grant CloudFront access to the S3 bucket via OAI
+        website_bucket.grant_read(origin_access_identity)
 
 
         # Environment variables for build
