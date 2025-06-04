@@ -85,14 +85,12 @@ jobs:
 
       - name: Deploy webapp to S3 and invalidate CloudFront
         run: |
-          source .venv/bin/activate
           # Get S3 bucket name and CloudFront distribution ID from CDK outputs
           BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name S3CloudFrontStack --query 'Stacks[0].Outputs[?OutputKey==`WebsiteBucketName`].OutputValue' --output text)
           DISTRIBUTION_ID=$(aws cloudformation describe-stacks --stack-name S3CloudFrontStack --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontDistributionId`].OutputValue' --output text)
           
           # Upload files to S3
-          aws s3 sync webapp/dist/ s3://$BUCKET_NAME --delete
+          aws s3 sync ./webapp/dist/ s3://$BUCKET_NAME --delete
           
           # Invalidate CloudFront cache
           aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
-        working-directory: ./
