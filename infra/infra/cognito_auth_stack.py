@@ -31,6 +31,11 @@ class CognitoAuthStack(Stack):
             "FactifyWebClient",
             user_pool_client_name="factify-web-client",
             generate_secret=False,  # SPA用
+            auth_flows=cognito.AuthFlow(
+                user_password=True,  # ALLOW_USER_PASSWORD_AUTH フローを有効化
+                user_srp=True,       # ALLOW_USER_SRP_AUTH フローも有効化
+                admin_user_password=True  # ALLOW_ADMIN_USER_PASSWORD_AUTH フローも有効化
+            )
         )
 
         # Outputs（デバッグ用）

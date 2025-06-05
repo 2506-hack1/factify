@@ -1,0 +1,78 @@
+Resources:
+  FactifyUserPool72589FCE:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_phone_number
+            Priority: 1
+          - Name: verified_email
+            Priority: 2
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      AutoVerifiedAttributes:
+        - email
+      EmailVerificationMessage: The verification code to your new account is {####}
+      EmailVerificationSubject: Verify your new account
+      SmsVerificationMessage: The verification code to your new account is {####}
+      UserPoolName: factify-user-pool
+      UsernameAttributes:
+        - email
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE
+        EmailMessage: The verification code to your new account is {####}
+        EmailSubject: Verify your new account
+        SmsMessage: The verification code to your new account is {####}
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: CognitoAuthStack/FactifyUserPool/Resource
+  FactifyUserPoolFactifyWebClient0A73F09B:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      AllowedOAuthFlows:
+        - implicit
+        - code
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - profile
+        - phone
+        - email
+        - openid
+        - aws.cognito.signin.user.admin
+      CallbackURLs:
+        - https://example.com
+      ClientName: factify-web-client
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      GenerateSecret: false
+      SupportedIdentityProviders:
+        - COGNITO
+      UserPoolId:
+        Ref: FactifyUserPool72589FCE
+    Metadata:
+      aws:cdk:path: CognitoAuthStack/FactifyUserPool/FactifyWebClient/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/3WOQU/DMAyFf8t8RGlYxwV6Q9OQuEBFNS4TQl7rdmZpMiUOVVX1v6OtbBzQTrae/d77Fjp9uNfzGXYhKat9Ynirh0Kw3CvswmfpGsvi9LAO5HPnzGYAjOLeyXPdQzYAtcgGMvGRRgWeWveNJneGyx4yqCiIdz0oCGTqghu7Pqwsbg1Vk0dB4MY+20fDGCj8T4y/xS/YEmRwA+OHWtb2zKPOy9IwWdkMF8PpWR1pd0/GdadorFqerBhC5/wFIl7RCn+4kDRkyaNQQaUngaxGE+gPcAK4gjkdx6P0GuUQZVR5Lztnb+90utDpfPYVmBMfrXBL+m2aP6hX5xqdAQAA
+    Metadata:
+      aws:cdk:path: CognitoAuthStack/CDKMetadata/Default
+Outputs:
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value:
+      Ref: FactifyUserPool72589FCE
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value:
+      Ref: FactifyUserPoolFactifyWebClient0A73F09B
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
