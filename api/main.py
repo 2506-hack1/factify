@@ -531,3 +531,43 @@ async def delete_user_file(file_id: str, current_user: dict = Depends(get_curren
     except Exception as e:
         print(f"Error deleting user file: {str(e)}")
         raise HTTPException(status_code=500, detail=f"ファイル削除中にエラーが発生しました: {str(e)}")
+
+@app.post("/debug/opensearch/search")
+async def debug_opensearch_search(search_data: dict):
+    """
+    デバッグ用OpenSearch検索エンドポイント（認証不要）
+    """
+    try:
+        query = search_data.get("query", "")
+        user_id = search_data.get("user_id")
+        size = search_data.get("size", 10)
+        
+        if not query:
+            return {"error": "クエリが必要です"}
+        
+        # OpenSearchで直接検索
+        result = opensearch_service.search_documents(query, user_id=user_id, size=size)
+        
+        if "error" in result:
+            return {"error": result["error"]}
+        
+        hits = result.get("hits", {}).get("hits", [])
+        
+        return {
+            "success": True,
+            "query": query,
+            "user_id": user_id,
+            "total_hits": result.get("hits", {}).get("total", {}).get("value", 0),
+            "returned_hits": len(hits),
+            "results": [
+                {
+                    "id": hit["_id"],
+                    "score": hit["_score"],
+                    "source": hit["_source"]
+                }
+                for hit in hits
+            ]
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
