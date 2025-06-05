@@ -2,7 +2,6 @@ from aws_cdk import (
     Stack,
     aws_ecs as ecs,
     aws_ec2 as ec2,
-    aws_applicationautoscaling as appscaling,
     CfnOutput,
 )
 from aws_cdk.aws_ecr_assets import DockerImageAsset
@@ -103,40 +102,10 @@ class FastapiFargateCdkStack(Stack):
         service = ecs.FargateService(self, "FastApiService",
             cluster=cluster,
             task_definition=task_definition,
-            desired_count=0,  # 初期状態は0（開発時間外）
+            desired_count=1,  # 常時1つのタスクを稼働
             security_groups=[ecs_security_group],
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),  # パブリックサブネットで実行
             assign_public_ip=True  # パブリックIPアドレスを割り当て
-        )
-
-        # 9. Auto Scaling設定（開発時間帯のみ稼働）
-        # Application Auto Scalingターゲットを作成
-        scalable_target = service.auto_scale_task_count(
-            min_capacity=0,  # 最小タスク数（開発時間外）
-            max_capacity=1   # 最大タスク数（開発時間内）
-        )
-        
-        # 時間ベースのスケーリング - 平日9時から18時まで稼働
-        # 稼働開始：平日9時（JST）= UTC 0時
-        scalable_target.scale_on_schedule("ScaleUpSchedule",
-            schedule=appscaling.Schedule.cron(
-                hour="0",    # UTC 0時 = JST 9時
-                minute="0",
-                week_day="MON-FRI"
-            ),
-            min_capacity=1,
-            max_capacity=1
-        )
-        
-        # 稼働停止：平日18時（JST）= UTC 9時
-        scalable_target.scale_on_schedule("ScaleDownSchedule",
-            schedule=appscaling.Schedule.cron(
-                hour="9",    # UTC 9時 = JST 18時
-                minute="0",
-                week_day="MON-FRI"
-            ),
-            min_capacity=0,
-            max_capacity=0
         )
         # 10. DbStorageStackが指定されている場合、タスクロールにS3とDynamoDBへのアクセス権限を付与
         if db_storage_stack:
