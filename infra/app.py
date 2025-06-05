@@ -28,6 +28,7 @@ db_storage_stack = DbStorageStack(app, "DbStorageStack",
 fastapi_stack = FastapiFargateCdkStack(app, "FastapiFargateCdkStack",
     env=target_env,
     db_storage_stack=db_storage_stack,
+    cognito_stack=cognito_stack,
 )
 
 # S3 + CloudFront stack for React webapp

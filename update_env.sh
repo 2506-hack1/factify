@@ -34,5 +34,15 @@ VITE_API_BASE_URL=http://localhost:8000
 VITE_ENV=development
 EOF
 
-echo ".env.local ファイルが更新されました"
+# API用の.envファイルも更新
+cd ../api
+cat > .env << EOF
+COGNITO_REGION=ap-northeast-1
+COGNITO_USER_POOL_ID=$USER_POOL_ID
+COGNITO_CLIENT_ID=$USER_POOL_CLIENT_ID
+AUTH_DEBUG_MODE=true
+EOF
+
+echo ".env.local と api/.env ファイルが更新されました"
 echo "フロントエンドを再起動してください: npm run dev"
+echo "APIを再起動してください: cd api && python main.py"

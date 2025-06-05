@@ -11,7 +11,7 @@ from constructs import Construct
 
 class FastapiFargateCdkStack(Stack):
 
-    def __init__(self, scope: Construct, construct_id: str, db_storage_stack=None, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, db_storage_stack=None, cognito_stack=None, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         # 1. VPC (Virtual Private Cloud) - 最小構成でコスト削減
@@ -57,15 +57,26 @@ class FastapiFargateCdkStack(Stack):
 
         # 6. Container Definition
         # タスク定義にコンテナを追加する
+        container_env = {
+            "S3_BUCKET_NAME": db_storage_stack.bucket.bucket_name if db_storage_stack else "factify-s3-bucket",
+            "DYNAMODB_TABLE_NAME": db_storage_stack.table.table_name if db_storage_stack else "factify-dynamodb-table",
+            "REGION_NAME": self.region
+        }
+        
+        # Cognito設定を環境変数として追加
+        if cognito_stack:
+            container_env.update({
+                "COGNITO_REGION": self.region,
+                "COGNITO_USER_POOL_ID": cognito_stack.user_pool_id,
+                "COGNITO_CLIENT_ID": cognito_stack.user_pool_client_id,
+                "AUTH_DEBUG_MODE": "true"
+            })
+
         container = task_definition.add_container("FastApiContainer",
             image=ecs.ContainerImage.from_docker_image_asset(image_asset),  # ECR からのイメージを指定
             memory_limit_mib=512,  # コンテナに割り当てるメモリ
             logging=ecs.LogDrivers.aws_logs(stream_prefix="fastapi"),  # CloudWatch Logs にログを送信
-            environment={
-                "S3_BUCKET_NAME": db_storage_stack.bucket.bucket_name if db_storage_stack else "factify-s3-bucket",
-                "DYNAMODB_TABLE_NAME": db_storage_stack.table.table_name if db_storage_stack else "factify-dynamodb-table",
-                "REGION_NAME": self.region
-            }
+            environment=container_env
         )
 
         # コンテナのポートマッピングを設定
