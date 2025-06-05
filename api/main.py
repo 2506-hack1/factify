@@ -27,7 +27,11 @@ app = FastAPI()
 # CORS設定
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # 開発用
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173",  # 開発用
+        "https://d2gf2wvyuful49.cloudfront.net"  # 本番用CloudFront
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
