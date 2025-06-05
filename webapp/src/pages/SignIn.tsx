@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../contexts/ToastContext';
 import './Auth.css';
 
 const SignIn: React.FC = () => {
@@ -10,11 +11,20 @@ const SignIn: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const { signIn } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
   // リダイレクト先を取得（デフォルトは/upload）
-  const from = (location.state as any)?.from?.pathname || '/upload';
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/upload';
+  const successMessage = (location.state as { message?: string })?.message;
+
+  // ページロード時に成功メッセージがあれば表示
+  useEffect(() => {
+    if (successMessage) {
+      showToast(successMessage, 'success');
+    }
+  }, [successMessage, showToast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +39,7 @@ const SignIn: React.FC = () => {
 
     try {
       await signIn(username, password);
+      showToast('ログインが成功しました', 'success');
       navigate(from, { replace: true });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'サインインに失敗しました';

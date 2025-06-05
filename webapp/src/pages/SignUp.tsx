@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../contexts/ToastContext';
 import './Auth.css';
 
 const SignUp: React.FC = () => {
@@ -13,6 +14,7 @@ const SignUp: React.FC = () => {
   const [step, setStep] = useState<'signup' | 'confirm'>('signup');
 
   const { signUp, confirmSignUp } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -39,6 +41,7 @@ const SignUp: React.FC = () => {
     try {
       // Cognitoではメールアドレスをユーザー名として使用
       await signUp(email, password);
+      showToast('確認メールを送信しました。メールをご確認ください。', 'success');
       setStep('confirm');
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'サインアップに失敗しました';
