@@ -74,7 +74,7 @@ class AWSServices:
         """DynamoDBテーブルを取得（下位互換性のため）"""
         return self.table
     
-    def search_documents(self, query: str, max_results: int = 5) -> List[Dict]:
+    def search_documents(self, query: str, max_results: int = 5, user_id: str = None) -> List[Dict]:
         """
         DynamoDBからドキュメントを検索する
         
@@ -84,6 +84,8 @@ class AWSServices:
             検索クエリ
         max_results : int
             返す最大結果数
+        user_id : str
+            ユーザーID（指定した場合、そのユーザーのファイルのみを検索）
             
         Returns:
         --------
@@ -91,9 +93,17 @@ class AWSServices:
             検索結果のリスト
         """
         try:
+            # ベースのフィルタ式を作成
+            filter_expression = Attr('formatted_text').contains(query)
+            
+            # ユーザーIDが指定されている場合、ユーザー固有のフィルタを追加
+            if user_id:
+                user_filter = Attr('user_id').eq(user_id)
+                filter_expression = filter_expression & user_filter
+            
             # DynamoDBでスキャンして検索
             response = self.table.scan(
-                FilterExpression=Attr('formatted_text').contains(query),
+                FilterExpression=filter_expression,
             )
             
             items = response.get('Items', [])

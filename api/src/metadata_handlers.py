@@ -3,7 +3,7 @@
 ファイルメタデータの処理とタイトル自動生成を担当
 """
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 
 def generate_auto_title(title: str, content_type: str, extracted_text: str, 
@@ -124,7 +124,7 @@ def create_metadata_for_ai(auto_title: str, description: str, file_extension: st
 def create_dynamodb_item(file_id: str, s3_key: str, file_name: str, file_extension: str,
                         uploaded_at: str, auto_title: str, description: str, 
                         content_type: str, file_metadata: Dict[str, Any], 
-                        formatted_text: str) -> Dict[str, Any]:
+                        formatted_text: str, user_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     DynamoDB用のアイテム辞書を作成する
     
@@ -150,13 +150,15 @@ def create_dynamodb_item(file_id: str, s3_key: str, file_name: str, file_extensi
         ファイルから抽出されたメタデータ
     formatted_text : str
         AI用に整形されたテキスト
+    user_info : Optional[Dict[str, Any]]
+        ユーザー情報（認証されている場合のみ）
         
     Returns:
     --------
     Dict[str, Any]
         DynamoDB用のアイテム辞書
     """
-    return {
+    item = {
         "id": file_id,
         "s3_key": s3_key,
         "file_name": file_name,
@@ -168,3 +170,16 @@ def create_dynamodb_item(file_id: str, s3_key: str, file_name: str, file_extensi
         "extracted_metadata": file_metadata,
         "formatted_text": formatted_text
     }
+    
+    # ユーザー情報が提供されている場合は追加
+    if user_info:
+        item.update({
+            "user_id": user_info.get("user_id"),
+            "user_email": user_info.get("email"),
+            "user_username": user_info.get("username"),
+            "is_authenticated": True
+        })
+    else:
+        item["is_authenticated"] = False
+    
+    return item

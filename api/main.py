@@ -24,6 +24,8 @@ from src.metadata_handlers import (
 from src.aws_services import aws_services
 from src.models import Document, SearchRequest, SearchResponse, UploadResponse
 from src.auth.cognito_auth import get_current_user, get_current_user_mock, get_current_user_optional, require_admin
+from src.config import S3_BUCKET_NAME
+from boto3.dynamodb.conditions import Attr
 
 app = FastAPI()
 
@@ -89,11 +91,13 @@ async def test_admin(admin_user: dict = Depends(require_admin)):
 async def upload_file(
     file: UploadFile = File(...),
     title: str = Form(...),
-    description: Optional[str] = Form(None)
+    description: Optional[str] = Form(None),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     ファイルをアップロードしてS3に保存し、メタデータをDynamoDBに格納します
     対応ファイル形式：テキスト、HTML、PDF、Docx
+    **認証必須**
     """
     try:
         # ファイルの内容を読み込む
@@ -149,7 +153,8 @@ async def upload_file(
             description=description, 
             content_type=file.content_type, 
             file_metadata=file_metadata, 
-            formatted_text=formatted_text
+            formatted_text=formatted_text,
+            user_info=current_user  # 認証必須なので常にユーザー情報あり
         )
         
         aws_services.save_to_dynamodb(item)
@@ -167,14 +172,14 @@ async def upload_file(
 
 
 @app.post("/search", response_model=SearchResponse)
-async def search_documents(search_request: SearchRequest):
+async def search_documents(search_request: SearchRequest, current_user: dict = Depends(get_current_user)):
     """
-    保存されたドキュメントを検索します
+    保存されたドキュメントを検索します（認証ユーザーのみ）
     
     Parameters:
     -----------
     search_request : SearchRequest
-        検索リクエスト（query: 検索語句, language: 言語コード, max_results: 最大結果数）
+        検索リクエスト（query: 検索語句, language: 言語コード, max_results: 最大結果数, user_only: ユーザー固有検索）
     
     Returns:
     --------
@@ -189,10 +194,16 @@ async def search_documents(search_request: SearchRequest):
         if search_request.max_results < 1 or search_request.max_results > 50:
             raise HTTPException(status_code=400, detail="max_resultsは1〜50の範囲で指定してください")
         
+        # ユーザー固有の検索かどうかを判定
+        user_id = None
+        if search_request.user_only:
+            user_id = current_user.get("user_id")  # 認証必須なので常にcurrent_userあり
+        
         # DynamoDBから検索
         search_results = aws_services.search_documents(
             query=search_request.query,
-            max_results=search_request.max_results
+            max_results=search_request.max_results,
+            user_id=user_id
         )
         
         # 言語フィルタリング（指定されている場合）
@@ -249,3 +260,144 @@ async def debug_scan_all():
         }
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/files/user", response_model=dict)
+async def get_user_files(current_user: dict = Depends(get_current_user)):
+    """
+    認証されたユーザーのファイル一覧を取得します
+    """
+    try:
+        user_id = current_user.get("user_id")
+        
+        # ユーザーのファイルを検索
+        response = aws_services.get_dynamodb_table().scan(
+            FilterExpression=Attr('user_id').eq(user_id)
+        )
+        
+        files = response.get('Items', [])
+        
+        # ファイル情報を整形
+        file_list = []
+        for file_item in files:
+            file_info = {
+                "id": file_item["id"],
+                "title": file_item["title"],
+                "file_name": file_item["file_name"],
+                "file_type": file_item["file_type"],
+                "uploaded_at": file_item["uploaded_at"],
+                "description": file_item.get("description", ""),
+                "s3_key": file_item["s3_key"]
+            }
+            file_list.append(file_info)
+        
+        # アップロード日時で降順ソート
+        file_list.sort(key=lambda x: x["uploaded_at"], reverse=True)
+        
+        return {
+            "success": True,
+            "user_id": user_id,
+            "total_files": len(file_list),
+            "files": file_list
+        }
+        
+    except Exception as e:
+        print(f"Error getting user files: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"ファイル取得中にエラーが発生しました: {str(e)}")
+
+@app.get("/files/user/stats", response_model=dict)
+async def get_user_stats(current_user: dict = Depends(get_current_user)):
+    """
+    認証されたユーザーのファイル統計を取得します
+    """
+    try:
+        user_id = current_user.get("user_id")
+        
+        # ユーザーのファイルを検索
+        response = aws_services.get_dynamodb_table().scan(
+            FilterExpression=Attr('user_id').eq(user_id)
+        )
+        
+        files = response.get('Items', [])
+        
+        # 統計を計算
+        total_files = len(files)
+        file_types = {}
+        total_text_length = 0
+        
+        for file_item in files:
+            # ファイルタイプの統計
+            file_type = file_item.get("file_type", "unknown")
+            file_types[file_type] = file_types.get(file_type, 0) + 1
+            
+            # テキスト長の統計
+            formatted_text = file_item.get("formatted_text", "")
+            total_text_length += len(formatted_text)
+        
+        return {
+            "success": True,
+            "user_id": user_id,
+            "username": current_user.get("username"),
+            "email": current_user.get("email"),
+            "statistics": {
+                "total_files": total_files,
+                "file_types": file_types,
+                "total_text_length": total_text_length,
+                "average_text_length": total_text_length // total_files if total_files > 0 else 0
+            }
+        }
+        
+    except Exception as e:
+        print(f"Error getting user stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"統計取得中にエラーが発生しました: {str(e)}")
+
+@app.delete("/files/user/{file_id}", response_model=dict)
+async def delete_user_file(file_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    認証されたユーザーの特定ファイルを削除します
+    """
+    try:
+        user_id = current_user.get("user_id")
+        
+        # ファイルの所有者確認
+        response = aws_services.get_dynamodb_table().get_item(
+            Key={'id': file_id}
+        )
+        
+        if 'Item' not in response:
+            raise HTTPException(status_code=404, detail="ファイルが見つかりません")
+        
+        file_item = response['Item']
+        file_user_id = file_item.get('user_id')
+        
+        # 所有者チェック
+        if file_user_id != user_id:
+            raise HTTPException(status_code=403, detail="このファイルを削除する権限がありません")
+        
+        # S3からファイルを削除
+        s3_key = file_item.get('s3_key')
+        if s3_key:
+            try:
+                aws_services.get_s3_client().delete_object(
+                    Bucket=S3_BUCKET_NAME,
+                    Key=s3_key
+                )
+            except Exception as s3_error:
+                print(f"S3削除エラー (継続): {s3_error}")
+        
+        # DynamoDBからレコードを削除
+        aws_services.get_dynamodb_table().delete_item(
+            Key={'id': file_id}
+        )
+        
+        return {
+            "success": True,
+            "message": "ファイルが削除されました",
+            "file_id": file_id,
+            "file_name": file_item.get('file_name', 'unknown')
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting user file: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"ファイル削除中にエラーが発生しました: {str(e)}")

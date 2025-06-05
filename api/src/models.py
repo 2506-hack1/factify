@@ -28,6 +28,7 @@ class SearchRequest(BaseModel):
     query: str
     language: Optional[str] = "en"
     max_results: Optional[int] = 5
+    user_only: Optional[bool] = False  # ユーザー固有のファイルのみを検索するかどうか
 
 
 class SearchResponse(BaseModel):
