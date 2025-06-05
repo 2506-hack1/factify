@@ -4,6 +4,7 @@ from aws_cdk import (
     RemovalPolicy,
     aws_dynamodb as dynamodb,
     aws_s3 as s3,
+    CfnOutput,
 )
 from constructs import Construct
 
@@ -20,7 +21,7 @@ class DbStorageStack(Stack):
         self.table = dynamodb.Table(
             self, 
             "FactifyTable",
-            table_name="factify-dynamodb-table",
+            table_name=f"factify-dynamodb-table-{self.account}-{self.region}",
             partition_key=dynamodb.Attribute(
                 name="id", 
                 type=dynamodb.AttributeType.STRING  # UUID
@@ -45,11 +46,11 @@ class DbStorageStack(Stack):
             projection_type=dynamodb.ProjectionType.ALL
         )
 
-        # S3バケットの作成（バケット名は自動生成）
+        # S3バケットの作成
         self.bucket = s3.Bucket(
             self, 
             "FactifyBucket",
-            # bucket_name を削除してCDKに自動生成させる（競合回避）
+            bucket_name=f"factify-s3-bucket-{self.account}-{self.region}",
             
             # 暗号化
             encryption=s3.BucketEncryption.S3_MANAGED,
@@ -60,6 +61,21 @@ class DbStorageStack(Stack):
             
             # パブリックアクセスをブロック（セキュリティのベストプラクティス）
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+        )
+
+        # Outputs for CloudFormation
+        CfnOutput(
+            self,
+            "DataS3BucketName",
+            value=self.bucket.bucket_name,
+            description="Data Storage S3 Bucket Name"
+        )
+
+        CfnOutput(
+            self,
+            "DynamoDBTableName", 
+            value=self.table.table_name,
+            description="DynamoDB Table Name"
         )
 
     def grant_access_to_task_role(self, task_role):

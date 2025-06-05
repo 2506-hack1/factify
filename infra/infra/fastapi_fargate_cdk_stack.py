@@ -60,7 +60,12 @@ class FastapiFargateCdkStack(Stack):
         container = task_definition.add_container("FastApiContainer",
             image=ecs.ContainerImage.from_docker_image_asset(image_asset),  # ECR からのイメージを指定
             memory_limit_mib=512,  # コンテナに割り当てるメモリ
-            logging=ecs.LogDrivers.aws_logs(stream_prefix="fastapi")  # CloudWatch Logs にログを送信
+            logging=ecs.LogDrivers.aws_logs(stream_prefix="fastapi"),  # CloudWatch Logs にログを送信
+            environment={
+                "S3_BUCKET_NAME": db_storage_stack.bucket.bucket_name if db_storage_stack else "factify-s3-bucket",
+                "DYNAMODB_TABLE_NAME": db_storage_stack.table.table_name if db_storage_stack else "factify-dynamodb-table",
+                "REGION_NAME": self.region
+            }
         )
 
         # コンテナのポートマッピングを設定
