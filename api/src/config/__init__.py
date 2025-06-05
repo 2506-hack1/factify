@@ -8,8 +8,10 @@ REGION_NAME = os.getenv("REGION_NAME", "ap-northeast-1")
 DYNAMODB_TABLE_NAME = os.getenv("DYNAMODB_TABLE_NAME", "factify-dynamodb-table-471112951833-ap-northeast-1")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "factify-s3-bucket-471112951833-ap-northeast-1")
 
-# OpenSearch設定（新規追加）
-OPENSEARCH_ENDPOINT = os.getenv("OPENSEARCH_ENDPOINT", "http://localhost:9200")  # デフォルトはローカル
+# OpenSearch設定（AWS OpenSearchサービス）
+OPENSEARCH_ENDPOINT = os.getenv("OPENSEARCH_ENDPOINT", "https://search-factify-search-demo-zv7xz3e4q2wwgm2eer2aoirt2e.ap-northeast-1.es.amazonaws.com")
+OPENSEARCH_USERNAME = os.getenv("OPENSEARCH_USERNAME", "admin")
+OPENSEARCH_PASSWORD = os.getenv("OPENSEARCH_PASSWORD", "TempPassword123!")
 
 # 対応しているファイルタイプのリスト
 SUPPORTED_FILE_TYPES = [

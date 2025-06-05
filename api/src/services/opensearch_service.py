@@ -1,20 +1,24 @@
 """
 OpenSearch最小構成検索サービス
-シンプルで高性能な検索機能を提供
+AWS OpenSearchサービス対応版（認証付き）
 """
 import requests
 import json
 from typing import Dict, List, Optional
-from ..config import OPENSEARCH_ENDPOINT
+from requests.auth import HTTPBasicAuth
+from ..config import OPENSEARCH_ENDPOINT, OPENSEARCH_USERNAME, OPENSEARCH_PASSWORD
 
 
 class MinimalOpenSearchService:
-    """最小構成OpenSearch検索サービス"""
+    """AWS OpenSearch検索サービス（認証対応版）"""
     
     def __init__(self):
-        # HTTPエンドポイント（認証なし・デモ用）
+        # HTTPS エンドポイント（認証付き）
         self.endpoint = OPENSEARCH_ENDPOINT
         self.index_name = "factify-docs"
+        self.auth = HTTPBasicAuth(OPENSEARCH_USERNAME, OPENSEARCH_PASSWORD)
+        # SSL証明書の検証を有効化
+        self.verify_ssl = True
         
     def create_index(self) -> Dict:
         """超シンプルなインデックス作成"""
@@ -53,6 +57,8 @@ class MinimalOpenSearchService:
                 f"{self.endpoint}/{self.index_name}",
                 json=mapping,
                 headers={"Content-Type": "application/json"},
+                auth=self.auth,
+                verify=self.verify_ssl,
                 timeout=10
             )
             print(f"インデックス作成結果: {response.status_code}")
@@ -79,6 +85,8 @@ class MinimalOpenSearchService:
                 f"{self.endpoint}/{self.index_name}/_doc/{doc_id}",
                 json=doc,
                 headers={"Content-Type": "application/json"},
+                auth=self.auth,
+                verify=self.verify_ssl,
                 timeout=10
             )
             print(f"ドキュメント登録: {doc_id} -> {response.status_code}")
@@ -87,7 +95,7 @@ class MinimalOpenSearchService:
             print(f"ドキュメント登録エラー: {e}")
             return {"error": str(e)}
 
-    def search(self, query: str, user_id: str = None, size: int = 10) -> Dict:
+    def search_documents(self, query: str, user_id: str = None, size: int = 10) -> Dict:
         """シンプル検索"""
         search_body = {
             "query": {
@@ -124,6 +132,8 @@ class MinimalOpenSearchService:
                 f"{self.endpoint}/{self.index_name}/_search",
                 json=search_body,
                 headers={"Content-Type": "application/json"},
+                auth=self.auth,
+                verify=self.verify_ssl,
                 timeout=10
             )
             print(f"検索実行: '{query}' -> {response.status_code}")
@@ -132,11 +142,17 @@ class MinimalOpenSearchService:
             print(f"検索エラー: {e}")
             return {"error": str(e)}
 
+    def search(self, query: str, user_id: str = None, size: int = 10) -> Dict:
+        """search_documentsのエイリアス（互換性のため）"""
+        return self.search_documents(query, user_id, size)
+
     def delete_document(self, doc_id: str) -> Dict:
         """ドキュメント削除"""
         try:
             response = requests.delete(
                 f"{self.endpoint}/{self.index_name}/_doc/{doc_id}",
+                auth=self.auth,
+                verify=self.verify_ssl,
                 timeout=10
             )
             return response.json()
@@ -147,7 +163,12 @@ class MinimalOpenSearchService:
     def health_check(self) -> bool:
         """ヘルスチェック"""
         try:
-            response = requests.get(f"{self.endpoint}/_cluster/health", timeout=5)
+            response = requests.get(
+                f"{self.endpoint}/_cluster/health", 
+                auth=self.auth,
+                verify=self.verify_ssl,
+                timeout=5
+            )
             return response.status_code == 200
         except:
             return False
