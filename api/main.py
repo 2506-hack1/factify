@@ -290,8 +290,6 @@ async def get_user_stats(current_user: dict = Depends(get_current_user)):
         return {
             "success": True,
             "user_id": user_id,
-            "username": current_user.get("username"),
-            "email": current_user.get("email"),
             "statistics": {
                 "total_files": total_files,
                 "file_types": file_types,

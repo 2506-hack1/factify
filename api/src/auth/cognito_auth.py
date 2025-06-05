@@ -108,11 +108,9 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
     try:
         # Cognito JWT検証
         payload = verify_cognito_token(token)
-        print(f"[DEBUG] Token verification successful for user: {payload.get('cognito:username')}")
+        print(f"[DEBUG] Token verification successful for user_id: {payload.get('sub')}")
         return {
             "user_id": payload["sub"],
-            "email": payload.get("email"),
-            "username": payload.get("cognito:username"),
             "groups": payload.get("cognito:groups", [])
         }
     except Exception as e:

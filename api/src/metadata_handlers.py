@@ -175,8 +175,6 @@ def create_dynamodb_item(file_id: str, s3_key: str, file_name: str, file_extensi
     if user_info:
         item.update({
             "user_id": user_info.get("user_id"),
-            "user_email": user_info.get("email"),
-            "user_username": user_info.get("username"),
             "is_authenticated": True
         })
     else:
