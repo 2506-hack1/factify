@@ -2,7 +2,8 @@ from aws_cdk import (
     Stack,
     aws_cognito as cognito,
     CfnOutput,
-    RemovalPolicy
+    RemovalPolicy,
+    Duration
 )
 from constructs import Construct
 
@@ -35,7 +36,11 @@ class CognitoAuthStack(Stack):
                 user_password=True,  # ALLOW_USER_PASSWORD_AUTH フローを有効化
                 user_srp=True,       # ALLOW_USER_SRP_AUTH フローも有効化
                 admin_user_password=True  # ALLOW_ADMIN_USER_PASSWORD_AUTH フローも有効化
-            )
+            ),
+            # トークン有効期限設定
+            access_token_validity=Duration.hours(24),
+            id_token_validity=Duration.hours(24),    
+            refresh_token_validity=Duration.days(30),
         )
 
         # Outputs（デバッグ用）
