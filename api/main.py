@@ -19,6 +19,7 @@ from src.metadata_handlers import (
 from src.aws_services import aws_services
 from src.models import Document, SearchRequest, SearchResponse, UploadResponse
 from src.auth.cognito_auth import get_current_user, get_current_user_optional, require_admin
+from src.services.opensearch_service import opensearch_service
 from src.config import S3_BUCKET_NAME
 from boto3.dynamodb.conditions import Attr
 
@@ -40,6 +41,129 @@ app.add_middleware(
 @app.get("/")
 async def read_root():
     return HTMLResponse("<h1>Hello from FastAPI on Fargate!</h1>")
+
+
+@app.post("/admin/opensearch/init")
+async def init_opensearch(current_user: dict = Depends(require_admin)):
+    """
+    OpenSearchインデックス初期化（管理者専用）
+    """
+    try:
+        # ヘルスチェック
+        if not opensearch_service.health_check():
+            raise HTTPException(
+                status_code=503, 
+                detail="OpenSearchクラスターに接続できません"
+            )
+        
+        # インデックス作成
+        result = opensearch_service.create_index()
+        
+        if "error" in result:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"インデックス作成に失敗しました: {result['error']}"
+            )
+        
+        return {
+            "success": True,
+            "message": "OpenSearchインデックスが正常に作成されました",
+            "result": result
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"OpenSearch初期化エラー: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"初期化中にエラーが発生しました: {str(e)}"
+        )
+
+
+@app.get("/admin/opensearch/status")
+async def opensearch_status(current_user: dict = Depends(require_admin)):
+    """
+    OpenSearchステータス確認（管理者専用）
+    """
+    try:
+        health_status = opensearch_service.health_check()
+        
+        return {
+            "success": True,
+            "opensearch_healthy": health_status,
+            "endpoint": opensearch_service.endpoint,
+            "index_name": opensearch_service.index_name
+        }
+        
+    except Exception as e:
+        print(f"OpenSearchステータス確認エラー: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"ステータス確認中にエラーが発生しました: {str(e)}"
+        )
+
+
+@app.post("/admin/opensearch/migrate")
+async def migrate_data_to_opensearch(current_user: dict = Depends(require_admin)):
+    """
+    既存DynamoDBデータをOpenSearchに移行（管理者専用）
+    """
+    try:
+        # OpenSearchヘルスチェック
+        if not opensearch_service.health_check():
+            raise HTTPException(
+                status_code=503, 
+                detail="OpenSearchクラスターに接続できません"
+            )
+        
+        # DynamoDBから全データを取得
+        response = aws_services.get_dynamodb_table().scan()
+        items = response.get('Items', [])
+        
+        successful_migrations = 0
+        failed_migrations = 0
+        
+        for item in items:
+            try:
+                # DynamoDBアイテムからOpenSearch用データを作成
+                opensearch_result = opensearch_service.index_document(
+                    doc_id=item["id"],
+                    title=item.get("title", ""),
+                    content=item.get("formatted_text", ""),
+                    user_id=item.get("user_id", "anonymous"),
+                    file_type=item.get("file_type", "unknown"),
+                    uploaded_at=item.get("uploaded_at")
+                )
+                
+                if "error" not in opensearch_result:
+                    successful_migrations += 1
+                else:
+                    failed_migrations += 1
+                    print(f"移行失敗: {item['id']} - {opensearch_result.get('error')}")
+                    
+            except Exception as migration_error:
+                failed_migrations += 1
+                print(f"移行エラー: {item.get('id', 'unknown')} - {migration_error}")
+        
+        return {
+            "success": True,
+            "message": "データ移行が完了しました",
+            "statistics": {
+                "total_items": len(items),
+                "successful_migrations": successful_migrations,
+                "failed_migrations": failed_migrations
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"データ移行エラー: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"データ移行中にエラーが発生しました: {str(e)}"
+        )
 
 @app.post("/upload/file", response_model=dict)
 async def upload_file(
@@ -113,6 +237,20 @@ async def upload_file(
         
         aws_services.save_to_dynamodb(item)
         
+        # OpenSearchにもドキュメントを登録（エラーが発生してもアップロード処理は継続）
+        try:
+            opensearch_result = opensearch_service.index_document(
+                doc_id=file_id,
+                title=auto_title,
+                content=formatted_text,
+                user_id=current_user.get("user_id", "anonymous"),
+                file_type=file_extension,
+                uploaded_at=uploaded_at
+            )
+            print(f"OpenSearch登録結果: {opensearch_result}")
+        except Exception as opensearch_error:
+            print(f"OpenSearch登録エラー（無視して処理継続）: {opensearch_error}")
+        
         return {
             "success": True,
             "file_id": file_id,
@@ -153,12 +291,52 @@ async def search_documents(search_request: SearchRequest, current_user: dict = D
         if search_request.user_only:
             user_id = current_user.get("user_id")  # 認証必須なので常にcurrent_userあり
         
-        # DynamoDBから検索
-        search_results = aws_services.search_documents(
-            query=search_request.query,
-            max_results=search_request.max_results,
-            user_id=user_id
-        )
+        # OpenSearchで検索を試行（フォールバック付き）
+        search_results = []
+        opensearch_success = False
+        
+        try:
+            # OpenSearchが利用可能かチェック
+            if opensearch_service.health_check():
+                print("OpenSearchで検索実行中...")
+                opensearch_response = opensearch_service.search(
+                    query=search_request.query,
+                    user_id=user_id,
+                    size=search_request.max_results
+                )
+                
+                if "error" not in opensearch_response and "hits" in opensearch_response:
+                    # OpenSearchの結果をDynamoDBフォーマットに変換
+                    for hit in opensearch_response["hits"]["hits"][:search_request.max_results]:
+                        source = hit["_source"]
+                        # OpenSearchからDynamoDBの詳細データを取得
+                        try:
+                            dynamodb_item = aws_services.get_dynamodb_table().get_item(
+                                Key={"id": hit["_id"]}
+                            ).get("Item")
+                            if dynamodb_item:
+                                search_results.append(dynamodb_item)
+                        except Exception as db_error:
+                            print(f"DynamoDB取得エラー: {db_error}")
+                            continue
+                    
+                    opensearch_success = True
+                    print(f"OpenSearch検索成功: {len(search_results)}件")
+                else:
+                    print(f"OpenSearch応答エラー: {opensearch_response}")
+            else:
+                print("OpenSearchヘルスチェック失敗")
+        except Exception as opensearch_error:
+            print(f"OpenSearch検索エラー: {opensearch_error}")
+        
+        # OpenSearchが失敗した場合はDynamoDBフォールバック
+        if not opensearch_success:
+            print("DynamoDBフォールバック検索実行中...")
+            search_results = aws_services.search_documents(
+                query=search_request.query,
+                max_results=search_request.max_results,
+                user_id=user_id
+            )
         
         # 言語フィルタリング（指定されている場合）
         if search_request.language and search_request.language != "en":

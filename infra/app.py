@@ -9,6 +9,7 @@ from infra.fastapi_fargate_cdk_stack import FastapiFargateCdkStack
 from infra.db_storage_stack import DbStorageStack
 from infra.s3_cloudfront_stack import S3CloudFrontStack
 from infra.cognito_auth_stack import CognitoAuthStack
+from infra.opensearch_stack import OpenSearchStack
 
 app = cdk.App()
 target_env = cdk.Environment(
@@ -22,6 +23,11 @@ cognito_stack = CognitoAuthStack(app, "CognitoAuthStack",
 )
 
 db_storage_stack = DbStorageStack(app, "DbStorageStack",
+    env=target_env,
+)
+
+# OpenSearch検索エンジンスタック（新規追加）
+opensearch_stack = OpenSearchStack(app, "OpenSearchStack",
     env=target_env,
 )
 

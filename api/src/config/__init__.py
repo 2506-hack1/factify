@@ -8,6 +8,9 @@ REGION_NAME = os.getenv("REGION_NAME", "ap-northeast-1")
 DYNAMODB_TABLE_NAME = os.getenv("DYNAMODB_TABLE_NAME", "factify-dynamodb-table-471112951833-ap-northeast-1")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "factify-s3-bucket-471112951833-ap-northeast-1")
 
+# OpenSearch設定（新規追加）
+OPENSEARCH_ENDPOINT = os.getenv("OPENSEARCH_ENDPOINT", "http://localhost:9200")  # デフォルトはローカル
+
 # 対応しているファイルタイプのリスト
 SUPPORTED_FILE_TYPES = [
     'text/plain',
@@ -25,6 +28,7 @@ __all__ = [
     'REGION_NAME', 
     'DYNAMODB_TABLE_NAME',
     'S3_BUCKET_NAME',
+    'OPENSEARCH_ENDPOINT',
     'COGNITO_REGION',
     'COGNITO_USER_POOL_ID', 
     'COGNITO_CLIENT_ID',
