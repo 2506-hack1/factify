@@ -264,7 +264,7 @@ async def upload_file(
 
 
 @app.post("/search", response_model=SearchResponse)
-async def search_documents(search_request: SearchRequest, current_user: dict = Depends(get_current_user)):
+async def search_documents(search_request: SearchRequest, current_user: dict = Depends(get_current_user_optional)):
     """
     保存されたドキュメントを検索します（認証ユーザーのみ）
     
@@ -289,7 +289,7 @@ async def search_documents(search_request: SearchRequest, current_user: dict = D
         # ユーザー固有の検索かどうかを判定
         user_id = None
         if search_request.user_only:
-            user_id = current_user.get("user_id")  # 認証必須なので常にcurrent_userあり
+            user_id = current_user.get("user_id") if current_user else None  # 認証オプションなのでcurrent_userがNoneの可能性あり
         
         # OpenSearchで検索を試行（フォールバック付き）
         search_results = []
@@ -546,7 +546,36 @@ async def debug_opensearch_search(search_data: dict):
             return {"error": "クエリが必要です"}
         
         # OpenSearchで直接検索
-        result = opensearch_service.search_documents(query, user_id=user_id, size=size)
+        if query == "*" or query == "":
+            # 全ドキュメント取得用の特別なクエリ
+            import requests
+            from requests.auth import HTTPBasicAuth
+            search_body = {
+                "query": {"match_all": {}},
+                "size": size
+            }
+            if user_id:
+                search_body["query"] = {
+                    "bool": {
+                        "must": [{"match_all": {}}],
+                        "filter": [{"term": {"user_id": user_id}}]
+                    }
+                }
+            
+            try:
+                response = requests.post(
+                    f"{opensearch_service.endpoint}/{opensearch_service.index_name}/_search",
+                    json=search_body,
+                    headers={"Content-Type": "application/json"},
+                    auth=opensearch_service.auth,
+                    verify=opensearch_service.verify_ssl,
+                    timeout=10
+                )
+                result = response.json()
+            except Exception as e:
+                return {"error": str(e)}
+        else:
+            result = opensearch_service.search_documents(query, user_id=user_id, size=size)
         
         if "error" in result:
             return {"error": result["error"]}

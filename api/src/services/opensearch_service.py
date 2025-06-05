@@ -100,16 +100,47 @@ class MinimalOpenSearchService:
         search_body = {
             "query": {
                 "bool": {
-                    "must": [
+                    "should": [
+                        # 完全一致（高スコア）
                         {
                             "multi_match": {
                                 "query": query,
-                                "fields": ["title^3", "content"],  # タイトル重要視
-                                "fuzziness": "AUTO",  # typo許容
-                                "operator": "or"
+                                "fields": ["title^5", "content^2"],
+                                "type": "phrase",
+                                "boost": 3.0
+                            }
+                        },
+                        # 部分一致（中スコア）
+                        {
+                            "multi_match": {
+                                "query": query,
+                                "fields": ["title^3", "content"],
+                                "operator": "and",
+                                "minimum_should_match": "75%"
+                            }
+                        },
+                        # 単語レベル一致（低スコア）
+                        {
+                            "multi_match": {
+                                "query": query,
+                                "fields": ["title^2", "content"],
+                                "operator": "or",
+                                "minimum_should_match": "50%",
+                                "boost": 0.5
+                            }
+                        },
+                        # typo許容（最低スコア）
+                        {
+                            "multi_match": {
+                                "query": query,
+                                "fields": ["title", "content"],
+                                "fuzziness": "1",  # 1文字までのtypo許容
+                                "operator": "and",
+                                "boost": 0.2
                             }
                         }
-                    ]
+                    ],
+                    "minimum_should_match": 1
                 }
             },
             "highlight": {
@@ -118,6 +149,7 @@ class MinimalOpenSearchService:
                     "content": {"fragment_size": 150, "number_of_fragments": 2}
                 }
             },
+            "min_score": 0.2,  # 最小スコア閾値（typo許容のため少し下げる）
             "size": size
         }
         
