@@ -1,20 +1,31 @@
 #!/bin/bash
 
-# CDKスタックから認証情報を取得し、.env.localファイルを更新するスクリプト
+# CDKスタックから認証情報を取得し、環境ファイルを更新するスクリプト
 
-echo "CDKスタックから認証情報を取得中..."
+echo "🔄 CDKスタックから認証情報を取得中..."
 
 # CDKディレクトリに移動
 cd /home/yotu/github/2506-hack1/factify/infra
 
 # CDKのアウトプットを取得
+echo "   Cognitoスタックの情報を取得..."
 USER_POOL_ID=$(aws cloudformation describe-stacks --stack-name CognitoAuthStack --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text --region ap-northeast-1)
 USER_POOL_CLIENT_ID=$(aws cloudformation describe-stacks --stack-name CognitoAuthStack --query "Stacks[0].Outputs[?OutputKey=='UserPoolClientId'].OutputValue" --output text --region ap-northeast-1)
 
-echo "User Pool ID: $USER_POOL_ID"
-echo "User Pool Client ID: $USER_POOL_CLIENT_ID"
+# 取得確認
+if [ "$USER_POOL_ID" = "None" ] || [ "$USER_POOL_CLIENT_ID" = "None" ] || [ -z "$USER_POOL_ID" ] || [ -z "$USER_POOL_CLIENT_ID" ]; then
+    echo "❌ エラー: Cognitoの情報を取得できませんでした"
+    echo "   CDKスタックがデプロイされているか確認してください"
+    exit 1
+fi
 
-# webappディレクトリに戻る
+echo "✅ 取得完了:"
+echo "   User Pool ID: $USER_POOL_ID"
+echo "   User Pool Client ID: $USER_POOL_CLIENT_ID"
+
+# webappディレクトリに移動して.env.localを更新
+echo ""
+echo "📝 Webapp環境変数を更新中..."
 cd ../webapp
 
 # .env.localファイルを更新
@@ -35,13 +46,29 @@ VITE_ENV=development
 EOF
 
 # API用の.envファイルも更新
+echo ""
+echo "📝 API環境変数を更新中..."
 cd ../api
+
+# API用の.envファイルを作成/更新
 cat > .env << EOF
+# API Environment Variables
+# Auto-generated from CDK stack outputs - $(date)
+
+# Cognito Configuration
 COGNITO_REGION=ap-northeast-1
 COGNITO_USER_POOL_ID=$USER_POOL_ID
 COGNITO_CLIENT_ID=$USER_POOL_CLIENT_ID
+
+# AWS Configuration
+AWS_DEFAULT_REGION=ap-northeast-1
 EOF
 
-echo ".env.local と api/.env ファイルが更新されました"
-echo "フロントエンドを再起動してください: npm run dev"
-echo "APIを再起動してください: cd api && python main.py"
+echo ""
+echo "🎉 環境変数の更新が完了しました！"
+echo "   ✅ webapp/.env.local - フロントエンド設定"
+echo "   ✅ api/.env - バックエンド設定"
+echo ""
+echo "次のステップ:"
+echo "   📱 フロントエンドを再起動: cd webapp && npm run dev"
+echo "   🔧 APIを再起動: cd api && python main.py"

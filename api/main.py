@@ -1,9 +1,4 @@
 import os
-from dotenv import load_dotenv
-
-# 開発環境で.envファイルを読み込み
-if os.path.exists('.env'):
-    load_dotenv()
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse

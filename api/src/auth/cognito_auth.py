@@ -3,13 +3,8 @@ import requests
 from typing import Optional, Dict, Any
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import os
 from functools import lru_cache
-
-# 環境変数
-COGNITO_REGION = os.getenv("COGNITO_REGION", "ap-northeast-1")
-COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
-COGNITO_CLIENT_ID = os.getenv("COGNITO_CLIENT_ID")
+from ..constants.cognito import COGNITO_REGION, COGNITO_USER_POOL_ID, COGNITO_CLIENT_ID
 
 security = HTTPBearer(auto_error=False)
 
