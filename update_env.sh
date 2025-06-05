@@ -40,7 +40,6 @@ cat > .env << EOF
 COGNITO_REGION=ap-northeast-1
 COGNITO_USER_POOL_ID=$USER_POOL_ID
 COGNITO_CLIENT_ID=$USER_POOL_CLIENT_ID
-AUTH_DEBUG_MODE=true
 EOF
 
 echo ".env.local と api/.env ファイルが更新されました"

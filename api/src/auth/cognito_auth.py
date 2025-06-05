@@ -11,9 +11,6 @@ COGNITO_REGION = os.getenv("COGNITO_REGION", "ap-northeast-1")
 COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
 COGNITO_CLIENT_ID = os.getenv("COGNITO_CLIENT_ID")
 
-# デバッグモード（開発時はTrue、本番時はFalse）
-DEBUG_MODE = os.getenv("AUTH_DEBUG_MODE", "true").lower() == "true"
-
 security = HTTPBearer(auto_error=False)
 
 @lru_cache()
@@ -71,31 +68,11 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
     
     token = credentials.credentials
     
-    # デバッグモード：モック認証
-    if DEBUG_MODE:
-        if token == "dev-token":
-            print("DEBUG: Using mock authentication")
-            return {
-                "user_id": "dev-user-123",
-                "email": "dev@example.com",
-                "username": "devuser",
-                "groups": []
-            }
-        elif token == "admin-token":
-            print("DEBUG: Using mock admin authentication")
-            return {
-                "user_id": "admin-user-456",
-                "email": "admin@example.com",
-                "username": "adminuser",
-                "groups": ["admin"]
-            }
-        else:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    
-    # 本番モード：Cognito JWT検証
+    # Cognito設定チェック
     if not COGNITO_USER_POOL_ID or not COGNITO_CLIENT_ID:
         raise HTTPException(status_code=500, detail="Cognito configuration missing")
     
+    # Cognito JWT検証
     payload = verify_cognito_token(token)
     return {
         "user_id": payload["sub"],
@@ -119,29 +96,3 @@ async def require_admin(current_user: Dict[str, Any] = Depends(get_current_user)
     if "admin" not in current_user.get("groups", []):
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
-
-# モック認証（段階2で使用していた関数を残す）
-async def get_current_user_mock(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> Dict[str, Any]:
-    """
-    モック認証（後方互換性のため残す）
-    """
-    if not credentials:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
-    
-    token = credentials.credentials
-    
-    if token == "dev-token":
-        return {
-            "user_id": "dev-user-123",
-            "email": "dev@example.com",
-            "username": "devuser"
-        }
-    elif token == "admin-token":
-        return {
-            "user_id": "admin-user-456",
-            "email": "admin@example.com",
-            "username": "adminuser",
-            "groups": ["admin"]
-        }
-    
-    raise HTTPException(status_code=401, detail="Invalid token")

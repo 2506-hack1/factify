@@ -67,8 +67,7 @@ class FastapiFargateCdkStack(Stack):
             container_env.update({
                 "COGNITO_REGION": self.region,
                 "COGNITO_USER_POOL_ID": cognito_stack.user_pool_id,
-                "COGNITO_CLIENT_ID": cognito_stack.user_pool_client_id,
-                "AUTH_DEBUG_MODE": "true"
+                "COGNITO_CLIENT_ID": cognito_stack.user_pool_client_id
             })
 
         container = task_definition.add_container("FastApiContainer",
