@@ -1,80 +1,76 @@
+/* Upload Page Styles */
 .upload-container {
   padding: 2rem;
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
 .upload-title {
   color: #1f2937;
   margin-bottom: 2rem;
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
-}
-
-.welcome-message {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.welcome-message p {
-  margin: 0;
-  line-height: 1.6;
-}
-
-.welcome-message p:first-child {
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.welcome-message p:last-child {
-  font-size: 0.95rem;
-  opacity: 0.9;
-}
-
-.welcome-message strong {
-  color: #fbbf24;
-  font-weight: 700;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.upload-area {
-  padding: 3rem 2rem;
-  border: 3px dashed #d1d5db;
-  border-radius: 12px;
   text-align: center;
-  background-color: #f9fafb;
-  transition: all 0.3s ease;
-  position: relative;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.upload-area:hover {
-  border-color: #3b82f6;
-  background-color: #eff6ff;
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
 }
 
-.upload-area h2 {
-  color: #374151;
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-  font-weight: 600;
+/* セクション */
+.upload-section {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
 }
 
-.upload-area p {
-  color: #6b7280;
-  margin: 0.5rem 0;
-  line-height: 1.5;
+.file-list-section {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
 }
 
-.upload-area p:last-child {
-  margin-top: 1rem;
-  font-weight: 500;
-  color: #4b5563;
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .upload-container {
+    padding: 1rem;
+  }
+  
+  .upload-title {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .upload-content {
+    gap: 2rem;
+  }
+  
+  .upload-section,
+  .file-list-section {
+    padding: 1.5rem;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .upload-title {
+    font-size: 1.75rem;
+  }
+  
+  .upload-section,
+  .file-list-section {
+    padding: 1rem;
+  }
 }
 
 /* レスポンシブ対応 */

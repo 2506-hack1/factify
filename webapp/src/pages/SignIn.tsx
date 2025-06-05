@@ -11,7 +11,7 @@ const SignIn: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const { signIn } = useAuth();
-  const { showToast } = useToast();
+  const { addToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -22,9 +22,9 @@ const SignIn: React.FC = () => {
   // ページロード時に成功メッセージがあれば表示
   useEffect(() => {
     if (successMessage) {
-      showToast(successMessage, 'success');
+      addToast(successMessage, 'success');
     }
-  }, [successMessage, showToast]);
+  }, [successMessage, addToast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +39,7 @@ const SignIn: React.FC = () => {
 
     try {
       await signIn(username, password);
-      showToast('ログインが成功しました', 'success');
+      addToast('ログインが成功しました', 'success');
       navigate(from, { replace: true });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'サインインに失敗しました';

@@ -70,8 +70,8 @@ class AuthService {
   // サインイン
   async signIn(username: string, password: string): Promise<AuthTokens> {
     const command = new InitiateAuthCommand({
+      AuthFlow: 'USER_PASSWORD_AUTH',
       ClientId: authConfig.userPoolWebClientId,
-      AuthFlow: 'USER_PASSWORD_AUTH', // パスワード認証を使用
       AuthParameters: {
         USERNAME: username,
         PASSWORD: password,
@@ -90,6 +90,7 @@ class AuthService {
         
         // トークンをローカルストレージに保存
         this.storeTokens(tokens);
+        console.log('Tokens stored successfully:', { hasAccessToken: !!tokens.accessToken });
         return tokens;
       } else {
         throw new Error('Authentication failed');

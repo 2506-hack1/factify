@@ -21,6 +21,9 @@ class ApiClient {
         const token = authService.getAccessToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log('Adding Authorization header with token:', token.substring(0, 20) + '...');
+        } else {
+          console.log('No access token found');
         }
         return config;
       },
@@ -33,8 +36,10 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
+        console.log('API Error:', error.response?.status, error.response?.data);
         if (error.response?.status === 401) {
           // 認証エラーの場合、トークンをクリアしてリダイレクト
+          console.log('401 error - signing out and redirecting');
           await authService.signOut();
           window.location.href = '/signin';
         }
@@ -72,7 +77,7 @@ class ApiClient {
 
 // APIクライアントのインスタンス作成
 const apiConfig: ApiConfig = {
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001',
   timeout: 10000,
 };
 
