@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { useToast } from '../contexts/ToastContext';
+import { useToast } from '../hooks/useToast';
 import './Auth.css';
 
 const SignIn: React.FC = () => {
