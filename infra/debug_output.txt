@@ -133,3 +133,30 @@ All Existing Stacks:
 |  2025-06-06T05:14:15.601000+00:00|  DbStorageStack          |  UPDATE_COMPLETE     |
 |  2025-05-30T18:21:12.629000+00:00|  CDKToolkit              |  CREATE_COMPLETE     |
 +----------------------------------+--------------------------+----------------------+
+=== GitHub Actions エラー調査 ===
+Error: No stack named 'FastapiFargateCdkStack'
+CDK Version: 2.1018.0
+
+=== 現在のスタック状況再確認 ===
+------------------------------------------------------------------------------
+|                                 ListStacks                                 |
++----------------------------------+---------------------+-------------------+
+|            LastUpdated           |      StackName      |    StackStatus    |
++----------------------------------+---------------------+-------------------+
+|  2025-06-05T14:49:32.525000+00:00|  OpenSearchStack    |  UPDATE_COMPLETE  |
+|  2025-06-05T01:32:18.672000+00:00|  S3CloudFrontStack  |  CREATE_COMPLETE  |
+|  2025-06-05T12:11:58.838000+00:00|  CognitoAuthStack   |  UPDATE_COMPLETE  |
+|  2025-06-06T05:14:15.601000+00:00|  DbStorageStack     |  UPDATE_COMPLETE  |
+|  2025-05-30T18:21:12.629000+00:00|  CDKToolkit         |  CREATE_COMPLETE  |
++----------------------------------+---------------------+-------------------+
+=== 現在の更新中スタック強制停止 ===
+Attempting to cancel long-running stack update...
+
+An error occurred (ValidationError) when calling the CancelUpdateStack operation: Stack: FastapiFargateCdkStack does not exist
+=== ローカルAWS環境確認 ===
+{
+    "UserId": "AIDAW3MEFFAM5HEZGQ5AD",
+    "Account": "471112951833",
+    "Arn": "arn:aws:iam::471112951833:user/yotu"
+}
+

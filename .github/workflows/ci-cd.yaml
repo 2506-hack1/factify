@@ -95,28 +95,33 @@ jobs:
           pip install -r requirements.txt
         working-directory: ./infra
 
-      - name: 🚀 CDK Deploy (optimized with hotswap)
+      - name: 🚀 CDK Deploy (with dependency order)
         env:
           DOCKER_BUILDKIT: 1
         run: |
           source .venv/bin/activate
           echo "🚀 Starting CDK deployment..."
+          
           # CDK bootstrapが必要な場合のチェック
           if ! cdk ls > /dev/null 2>&1; then
-            echo "CDK bootstrap required..."
+            echo "🔧 CDK bootstrap required..."
             cdk bootstrap
           fi
-          # ホットスワップ機能で高速デプロイ
-          cdk deploy --all --require-approval never --app "python3 app.py" \
-            --hotswap --progress events --concurrency 10 \
-            --strict --no-version-reporting || {
-            echo "❌ CDK deployment failed! Checking logs..."
-            echo "🔍 CDK Context:"
-            cat cdk.context.json 2>/dev/null || echo "No CDK context found"
-            echo "🔍 CDK Version:"
-            cdk --version
-            exit 1
-          }
+          
+          echo "📋 Available stacks:"
+          cdk ls
+          
+          # 依存関係順序でデプロイ（--allは使わない）
+          echo "🏗️ Deploying foundation stacks..."
+          cdk deploy CognitoAuthStack DbStorageStack OpenSearchStack --require-approval never --progress events --no-version-reporting
+          
+          echo "🏗️ Deploying FastAPI stack..."
+          cdk deploy FastapiFargateCdkStack --require-approval never --progress events --no-version-reporting
+          
+          echo "🏗️ Deploying CloudFront stack..."
+          cdk deploy S3CloudFrontStack --require-approval never --progress events --no-version-reporting
+          
+          echo "✅ All stacks deployed successfully!"
         working-directory: ./infra
 
       - name: 🌐 Get API endpoint from ECS service

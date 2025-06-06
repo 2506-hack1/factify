@@ -5,6 +5,7 @@ import os
 
 # AWSリソース設定（環境変数から取得、デフォルト値も設定）
 REGION_NAME = os.getenv("REGION_NAME", "ap-northeast-1")
+AWS_REGION = os.getenv("AWS_REGION", "ap-northeast-1")  # access_logger_service用
 DYNAMODB_TABLE_NAME = os.getenv("DYNAMODB_TABLE_NAME", "factify-dynamodb-table-471112951833-ap-northeast-1")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "factify-s3-bucket-471112951833-ap-northeast-1")
 
@@ -28,6 +29,7 @@ from .cognito_config import COGNITO_REGION, COGNITO_USER_POOL_ID, COGNITO_CLIENT
 __all__ = [
     'SUPPORTED_FILE_TYPES',
     'REGION_NAME', 
+    'AWS_REGION',
     'DYNAMODB_TABLE_NAME',
     'S3_BUCKET_NAME',
     'OPENSEARCH_ENDPOINT',
