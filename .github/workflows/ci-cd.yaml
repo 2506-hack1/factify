@@ -64,22 +64,28 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
-      - name: 📦 Setup Node.js with cache
+      - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: infra/package-lock.json
 
       - name: ⚡ Install CDK CLI (cached)
         run: npm install -g aws-cdk
+
+      - name: 💾 Cache Python virtual environment
+        uses: actions/cache@v4
+        with:
+          path: infra/.venv
+          key: ${{ runner.os }}-python-${{ env.PYTHON_VERSION }}-${{ hashFiles('infra/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-python-${{ env.PYTHON_VERSION }}-
 
       - name: 🏗️ Install CDK dependencies (optimized)
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          pip install --upgrade pip --no-cache-dir
-          pip install -r requirements.txt --no-cache-dir
+          pip install --upgrade pip
+          pip install -r requirements.txt
         working-directory: ./infra
 
       - name: 🚀 CDK Deploy (optimized with hotswap)
