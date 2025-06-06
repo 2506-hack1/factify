@@ -2,7 +2,9 @@ from aws_cdk import (
     Stack,
     aws_ecs as ecs,
     aws_ec2 as ec2,
+    aws_ecr as ecr,
     CfnOutput,
+    Duration,
 )
 from aws_cdk.aws_ecr_assets import DockerImageAsset
 
@@ -12,6 +14,18 @@ class FastapiFargateCdkStack(Stack):
 
     def __init__(self, scope: Construct, construct_id: str, db_storage_stack=None, cognito_stack=None, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
+
+        # ECR Repository with lifecycle policy
+        ecr_repo = ecr.Repository(self, "FastApiECRRepo",
+            repository_name="factify-fastapi",
+            lifecycle_rules=[
+                ecr.LifecycleRule(
+                    max_image_count=10,
+                    rule_priority=1,
+                    description="Keep only 10 latest images"
+                )
+            ]
+        )
 
         # 1. VPC (Virtual Private Cloud) - 最小構成でコスト削減
         # パブリックサブネットのみの最シンプル構成
@@ -40,18 +54,22 @@ class FastapiFargateCdkStack(Stack):
             cluster_name="fastapi-cluster"
         )
 
-        # 3. Docker Image Asset
+        # 3. Docker Image Asset with optimizations
         # ローカルの Dockerfile とソースコードから Docker イメージをビルドし、ECR にプッシュするためのアセット
         image_asset = DockerImageAsset(self, 'FastApiDockerImage', 
-            directory='../api'
+            directory='../api',
+            repository_name=ecr_repo.repository_name,
+            build_args={
+                "BUILDKIT_INLINE_CACHE": "1"
+            }
         )
 
-        # 5. Task Definition
+        # 5. Task Definition - Increased resources for faster startup
         # タスク定義は、ECS Fargate で実行されるコンテナの設定を定義する
         # https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ecs.FargateTaskDefinition.html
         task_definition = ecs.FargateTaskDefinition(self, "FastApiTaskDef",
-            memory_limit_mib=512, # タスクに割り当てるメモリ
-            cpu=256 # タスクに割り当てるCPUユニット数
+            memory_limit_mib=1024, # Increased from 512 for faster startup
+            cpu=512 # Increased from 256 for faster startup
         )
 
         # 6. Container Definition
@@ -72,9 +90,16 @@ class FastapiFargateCdkStack(Stack):
 
         container = task_definition.add_container("FastApiContainer",
             image=ecs.ContainerImage.from_docker_image_asset(image_asset),  # ECR からのイメージを指定
-            memory_limit_mib=512,  # コンテナに割り当てるメモリ
+            memory_limit_mib=1024,  # Increased container memory
             logging=ecs.LogDrivers.aws_logs(stream_prefix="fastapi"),  # CloudWatch Logs にログを送信
-            environment=container_env
+            environment=container_env,
+            health_check=ecs.HealthCheck(
+                command=["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"],
+                interval=Duration.seconds(30),
+                timeout=Duration.seconds(10),
+                retries=3,
+                start_period=Duration.seconds(60)
+            )
         )
 
         # コンテナのポートマッピングを設定
@@ -96,7 +121,7 @@ class FastapiFargateCdkStack(Stack):
             "Allow HTTP traffic from anywhere"
         )
 
-        # 8. ECS Fargate Service (ALB削除 - パブリックアクセス版)
+        # 8. ECS Fargate Service (ALB削除 - パブリックアクセス版) with optimized deployment
         # Fargate サービスを作成し、ECS クラスターにタスク定義をデプロイ
         service = ecs.FargateService(self, "FastApiService",
             cluster=cluster,
@@ -104,7 +129,16 @@ class FastapiFargateCdkStack(Stack):
             desired_count=1,  # 常時1つのタスクを稼働
             security_groups=[ecs_security_group],
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),  # パブリックサブネットで実行
-            assign_public_ip=True  # パブリックIPアドレスを割り当て
+            assign_public_ip=True,  # パブリックIPアドレスを割り当て
+            deployment_configuration=ecs.DeploymentConfiguration(
+                maximum_percent=200,
+                minimum_healthy_percent=0,  # Allow faster deployments
+                circuit_breaker=ecs.DeploymentCircuitBreaker(
+                    enable=True,
+                    rollback=True
+                )
+            ),
+            enable_execute_command=True  # For debugging
         )
         # 10. DbStorageStackが指定されている場合、タスクロールにS3とDynamoDBへのアクセス権限を付与
         if db_storage_stack:

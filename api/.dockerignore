@@ -1,0 +1,14 @@
+# Build context optimization
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+.git
+.gitignore
+README.md
+Makefile
+debug/
+test_*.py
+sample.html

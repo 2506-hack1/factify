@@ -43,6 +43,42 @@ app.add_middleware(
 async def read_root():
     return HTMLResponse("<h1>Hello from FastAPI on Fargate!</h1>")
 
+@app.get("/health")
+async def health_check():
+    """
+    ヘルスチェックエンドポイント - ECSとALBで使用
+    """
+    try:
+        # 基本的なヘルスチェック
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat(),
+            "version": "1.0.0",
+            "services": {}
+        }
+        
+        # DynamoDBヘルスチェック
+        try:
+            aws_services.get_dynamodb_table().describe_table()
+            health_status["services"]["dynamodb"] = "healthy"
+        except Exception as e:
+            health_status["services"]["dynamodb"] = f"unhealthy: {str(e)}"
+            health_status["status"] = "degraded"
+        
+        # OpenSearchヘルスチェック（オプション）
+        try:
+            if opensearch_service.health_check():
+                health_status["services"]["opensearch"] = "healthy"
+            else:
+                health_status["services"]["opensearch"] = "unhealthy"
+        except Exception as e:
+            health_status["services"]["opensearch"] = f"error: {str(e)}"
+        
+        return health_status
+        
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Health check failed: {str(e)}")
+
 
 @app.post("/admin/opensearch/init")
 async def init_opensearch(current_user: dict = Depends(require_admin)):
