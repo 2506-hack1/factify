@@ -8,6 +8,7 @@ import About from './pages/About'
 import Upload from './pages/Upload'
 import SignIn from './pages/SignIn'
 import SignUp from './pages/SignUp'
+import SearchDebug from './pages/SearchDebug'
 import NotFound from './pages/NotFound'
 import './App.css'
 
@@ -23,6 +24,7 @@ function App() {
               <Route path="/about" element={<About />} />
               <Route path="/signin" element={<SignIn />} />
               <Route path="/signup" element={<SignUp />} />
+              <Route path="/debug/search" element={<SearchDebug />} />
               <Route path="/upload" element={
                 <PrivateRoute>
                   <Upload />

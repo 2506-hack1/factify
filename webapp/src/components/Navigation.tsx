@@ -54,6 +54,7 @@ const Navigation: React.FC = () => {
           <div className={`nav-links ${isMenuOpen ? 'open' : ''}`}>
             <Link to="/" className="nav-link" onClick={handleLinkClick}>ホーム</Link>
             <Link to="/about" className="nav-link" onClick={handleLinkClick}>About</Link>
+            <Link to="/debug/search" className="nav-link debug-link" onClick={handleLinkClick}>🔍 高度な検索</Link>
             
             {isAuthenticated ? (
               <>
