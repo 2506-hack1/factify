@@ -137,14 +137,9 @@ class FastapiFargateCdkStack(Stack):
             security_groups=[ecs_security_group],
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),  # パブリックサブネットで実行
             assign_public_ip=True,  # パブリックIPアドレスを割り当て
-            deployment_configuration=ecs.DeploymentConfiguration(
-                maximum_percent=200,
-                minimum_healthy_percent=0,  # Allow faster deployments
-                circuit_breaker=ecs.DeploymentCircuitBreaker(
-                    enable=True,
-                    rollback=True
-                )
-            ),
+            # CDK v2では個別にプロパティを設定
+            max_healthy_percent=200,
+            min_healthy_percent=0,  # Allow faster deployments
             enable_execute_command=True  # For debugging
         )
         # 10. DbStorageStackが指定されている場合、タスクロールにS3とDynamoDBへのアクセス権限を付与
