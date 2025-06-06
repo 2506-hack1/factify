@@ -3,6 +3,7 @@ from aws_cdk import (
     aws_s3 as s3,
     aws_cloudfront as cloudfront,
     aws_cloudfront_origins as origins,
+    aws_iam as iam,
     CfnOutput,
     RemovalPolicy,
 )
@@ -24,22 +25,12 @@ class S3CloudFrontStack(Stack):
             auto_delete_objects=True,  # 開発環境用
         )
 
-        # Origin Access Identity for CloudFront (CDK v2 compatible approach)
-        origin_access_identity = cloudfront.OriginAccessIdentity(
-            self,
-            "WebsiteOAI",
-            comment="OAI for factify webapp"
-        )
-
-        # CloudFront Distribution
+        # CloudFront Distribution with modern S3 origin (CDK v2)
         distribution = cloudfront.Distribution(
             self,
             "WebsiteDistribution",
             default_behavior=cloudfront.BehaviorOptions(
-                origin=origins.S3BucketOrigin.with_origin_access_identity(
-                    bucket=website_bucket,
-                    origin_access_identity=origin_access_identity
-                ),
+                origin=origins.S3Origin(website_bucket),
                 viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
             ),
@@ -61,8 +52,8 @@ class S3CloudFrontStack(Stack):
             ],
         )
 
-        # Grant CloudFront access to the S3 bucket via OAI
-        website_bucket.grant_read(origin_access_identity)
+        # S3Origin automatically sets up the necessary permissions for CloudFront access
+        # No manual OAI grant needed with the simplified S3Origin approach
 
 
         # Environment variables for build
