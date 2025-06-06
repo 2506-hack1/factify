@@ -286,5 +286,205 @@ class AccessLoggerService:
             return False
 
 
+    def get_weekly_user_activity(self, days: int = 7) -> Dict:
+        """
+        過去N日間の日別ユニークユーザー数を取得する
+        
+        Parameters:
+        -----------
+        days : int
+            遡る日数（デフォルト: 7日間）
+            
+        Returns:
+        --------
+        Dict
+            日別ユニークユーザー統計
+        """
+        if not self.access_logs_table:
+            return {}
+            
+        try:
+            from datetime import datetime, timedelta
+            
+            # 現在時刻から指定日数分遡る
+            end_date = datetime.utcnow()
+            start_date = end_date - timedelta(days=days)
+            
+            # 日別の統計を格納する辞書
+            daily_stats = {}
+            
+            # 指定期間の全アクセスログを取得
+            response = self.access_logs_table.scan(
+                FilterExpression='#ts BETWEEN :start_date AND :end_date',
+                ExpressionAttributeNames={
+                    '#ts': 'timestamp'
+                },
+                ExpressionAttributeValues={
+                    ':start_date': start_date.isoformat(),
+                    ':end_date': end_date.isoformat()
+                }
+            )
+            
+            access_logs = response.get('Items', [])
+            
+            # 日別にグループ化
+            for log in access_logs:
+                try:
+                    # タイムスタンプから日付を抽出
+                    log_date = datetime.fromisoformat(log['timestamp'].replace('Z', '+00:00'))
+                    date_key = log_date.strftime('%Y-%m-%d')
+                    
+                    if date_key not in daily_stats:
+                        daily_stats[date_key] = {
+                            'date': date_key,
+                            'unique_users': set(),
+                            'total_accesses': 0
+                        }
+                    
+                    daily_stats[date_key]['unique_users'].add(log['accessing_user_id'])
+                    daily_stats[date_key]['total_accesses'] += 1
+                    
+                except Exception as e:
+                    print(f"ログ処理エラー: {e}")
+                    continue
+            
+            # setをcountに変換し、欠けている日付を補完
+            result = []
+            current_date = start_date
+            
+            while current_date <= end_date:
+                date_key = current_date.strftime('%Y-%m-%d')
+                
+                if date_key in daily_stats:
+                    result.append({
+                        'date': date_key,
+                        'unique_users': len(daily_stats[date_key]['unique_users']),
+                        'total_accesses': daily_stats[date_key]['total_accesses']
+                    })
+                else:
+                    # データがない日は0として追加
+                    result.append({
+                        'date': date_key,
+                        'unique_users': 0,
+                        'total_accesses': 0
+                    })
+                
+                current_date += timedelta(days=1)
+            
+            return {
+                'success': True,
+                'period_days': days,
+                'start_date': start_date.strftime('%Y-%m-%d'),
+                'end_date': end_date.strftime('%Y-%m-%d'),
+                'daily_stats': result,
+                'total_unique_users': len(set(log['accessing_user_id'] for log in access_logs)),
+                'total_accesses': len(access_logs)
+            }
+            
+        except Exception as e:
+            print(f"週間ユーザーアクティビティ取得エラー: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'daily_stats': []
+            }
+    
+    def generate_dummy_access_logs(self, num_days: int = 7, logs_per_day: int = 10) -> bool:
+        """
+        ダミーのアクセスログを生成する（テスト用）
+        
+        Parameters:
+        -----------
+        num_days : int
+            過去何日分のデータを生成するか
+        logs_per_day : int
+            1日あたりのログ数
+            
+        Returns:
+        --------
+        bool
+            生成の成功/失敗
+        """
+        if not self.access_logs_table:
+            print("アクセスログテーブルが利用できません")
+            return False
+            
+        try:
+            import random
+            from datetime import datetime, timedelta
+            
+            # ダミーユーザーIDリスト
+            dummy_users = [
+                'user001', 'user002', 'user003', 'user004', 'user005',
+                'user006', 'user007', 'user008', 'user009', 'user010'
+            ]
+            
+            # ダミードキュメントIDリスト
+            dummy_documents = [
+                'doc001', 'doc002', 'doc003', 'doc004', 'doc005',
+                'doc006', 'doc007', 'doc008', 'doc009', 'doc010'
+            ]
+            
+            # ダミー検索クエリリスト
+            dummy_queries = [
+                'Python プログラミング', 'データ分析', 'AWS Lambda',
+                '機械学習', 'Web開発', 'データベース設計',
+                'API開発', 'TypeScript', 'React', 'FastAPI'
+            ]
+            
+            generated_count = 0
+            
+            for day_offset in range(num_days):
+                # 過去の日付を生成
+                target_date = datetime.utcnow() - timedelta(days=day_offset)
+                
+                # その日のログ数をランダムに変動させる
+                daily_logs = random.randint(max(1, logs_per_day - 5), logs_per_day + 5)
+                
+                for _ in range(daily_logs):
+                    # ランダムな時間を生成
+                    random_hour = random.randint(8, 22)
+                    random_minute = random.randint(0, 59)
+                    random_second = random.randint(0, 59)
+                    
+                    log_time = target_date.replace(
+                        hour=random_hour,
+                        minute=random_minute,
+                        second=random_second,
+                        microsecond=0
+                    )
+                    
+                    # ランダムなアクセス情報を生成
+                    accessing_user = random.choice(dummy_users)
+                    document_owner = random.choice(dummy_users)
+                    
+                    # 自分のドキュメントへのアクセスは除外
+                    while document_owner == accessing_user:
+                        document_owner = random.choice(dummy_users)
+                    
+                    access_log_item = {
+                        'transaction_id': str(uuid.uuid4()),
+                        'timestamp': log_time.isoformat(),
+                        'accessed_document_id': random.choice(dummy_documents),
+                        'accessing_user_id': accessing_user,
+                        'document_owner_id': document_owner,
+                        'search_query': random.choice(dummy_queries),
+                        'search_rank': random.randint(1, 10),
+                        'access_type': 'search_result'
+                    }
+                    
+                    # DynamoDBに記録
+                    self.access_logs_table.put_item(Item=access_log_item)
+                    generated_count += 1
+                    
+                print(f"日付 {target_date.strftime('%Y-%m-%d')}: {daily_logs}件のダミーログを生成")
+                
+            print(f"ダミーアクセスログ生成完了: 合計{generated_count}件")
+            return True
+            
+        except Exception as e:
+            print(f"ダミーデータ生成エラー: {e}")
+            return False
+
 # シングルトンインスタンス
 access_logger_service = AccessLoggerService()

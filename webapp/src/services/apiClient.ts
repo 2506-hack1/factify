@@ -37,12 +37,38 @@ class ApiClient {
       (response) => response,
       async (error) => {
         console.log('API Error:', error.response?.status, error.response?.data);
-        if (error.response?.status === 401) {
-          // 認証エラーの場合、トークンをクリアしてリダイレクト
-          console.log('401 error - signing out and redirecting');
+        
+        const originalRequest = error.config;
+        
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          
+          console.log('401 error - attempting token refresh');
+          
+          // authServiceのリフレッシュメソッドを呼び出し
+          try {
+            // 直接authServiceの内部メソッドにアクセスできないので、
+            // getCurrentUserを呼び出してリフレッシュを試行
+            const user = await authService.getCurrentUser();
+            
+            if (user) {
+              // リフレッシュ成功、元のリクエストを再実行
+              const newToken = authService.getAccessToken();
+              if (newToken) {
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                return this.client(originalRequest);
+              }
+            }
+          } catch (refreshError) {
+            console.log('Token refresh failed:', refreshError);
+          }
+          
+          // リフレッシュ失敗の場合、サインアウトしてリダイレクト
+          console.log('Token refresh failed - signing out and redirecting');
           await authService.signOut();
           window.location.href = '/signin';
         }
+        
         return Promise.reject(error);
       }
     );

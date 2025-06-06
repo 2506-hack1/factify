@@ -106,15 +106,15 @@ class AuthService {
     const tokens = this.getStoredTokens();
     if (!tokens) return null;
 
-    const command = new GetUserCommand({
-      AccessToken: tokens.accessToken,
-    });
-
     try {
+      const command = new GetUserCommand({
+        AccessToken: tokens.accessToken,
+      });
+      
       const response = await this.client.send(command);
       
       const attributes: Record<string, string> = {};
-      response.UserAttributes?.forEach(attr => {
+      response.UserAttributes?.forEach((attr: {Name?: string; Value?: string}) => {
         if (attr.Name && attr.Value) {
           attributes[attr.Name] = attr.Value;
         }
@@ -125,9 +125,21 @@ class AuthService {
         email: attributes.email || '',
         attributes,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Get current user error:', error);
-      // トークンが無効な場合はクリア
+      
+      // トークンが期限切れの場合、リフレッシュを試行
+      if (error && typeof error === 'object' && 'name' in error && 
+          (error.name === 'NotAuthorizedException' || error.name === 'TokenExpiredException')) {
+        console.log('Access token expired, attempting refresh...');
+        const refreshed = await this.refreshTokens();
+        if (refreshed) {
+          // リフレッシュ成功後、再度ユーザー情報を取得
+          return this.getCurrentUser();
+        }
+      }
+      
+      // リフレッシュ失敗またはその他のエラーの場合はトークンをクリア
       this.clearTokens();
       return null;
     }
@@ -149,6 +161,44 @@ class AuthService {
     }
     
     this.clearTokens();
+  }
+
+  // トークンリフレッシュ
+  private async refreshTokens(): Promise<boolean> {
+    const tokens = this.getStoredTokens();
+    if (!tokens?.refreshToken) {
+      console.log('No refresh token available');
+      return false;
+    }
+
+    try {
+      const command = new InitiateAuthCommand({
+        AuthFlow: 'REFRESH_TOKEN_AUTH',
+        ClientId: authConfig.userPoolWebClientId,
+        AuthParameters: {
+          REFRESH_TOKEN: tokens.refreshToken,
+        },
+      });
+
+      const response = await this.client.send(command);
+      
+      if (response.AuthenticationResult) {
+        const newTokens: AuthTokens = {
+          accessToken: response.AuthenticationResult.AccessToken!,
+          idToken: response.AuthenticationResult.IdToken!,
+          refreshToken: tokens.refreshToken, // リフレッシュトークンは通常変更されない
+        };
+        
+        this.storeTokens(newTokens);
+        console.log('Tokens refreshed successfully');
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      return false;
+    }
   }
 
   // トークン管理

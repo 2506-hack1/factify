@@ -33,15 +33,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const initializeAuth = async () => {
     try {
-      if (authService.isAuthenticated()) {
+      console.log('🔍 Auth initialization started...');
+      const hasTokens = authService.isAuthenticated();
+      console.log('📋 Has tokens in localStorage:', hasTokens);
+      
+      if (hasTokens) {
+        const accessToken = authService.getAccessToken();
+        console.log('🎫 Access token found:', accessToken?.substring(0, 20) + '...');
+        
+        console.log('👤 Getting current user...');
         const currentUser = await authService.getCurrentUser();
+        console.log('✅ Current user result:', currentUser);
         setUser(currentUser);
+      } else {
+        console.log('❌ No tokens found - user not authenticated');
+        setUser(null);
       }
     } catch (error) {
-      console.error('Auth initialization error:', error);
+      console.error('❌ Auth initialization error:', error);
       setUser(null);
     } finally {
       setLoading(false);
+      console.log('🎯 Auth initialization completed. User:', user);
     }
   };
 

@@ -680,6 +680,30 @@ async def get_user_access_logs(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"アクセス履歴取得中にエラーが発生しました: {str(e)}")
 
 
+@app.get("/analytics/weekly-users", response_model=dict)
+async def get_weekly_user_activity(
+    days: Optional[int] = 7,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    過去N日間の日別ユニークユーザー数を取得します
+    
+    Parameters:
+    -----------
+    days : int, optional
+        遡る日数（デフォルト: 7日間）
+    """
+    try:
+        # 週間ユーザーアクティビティデータを取得
+        weekly_data = access_logger_service.get_weekly_user_activity(days=days)
+        
+        return weekly_data
+        
+    except Exception as e:
+        print(f"週間ユーザーアクティビティ取得エラー: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"週間ユーザーアクティビティ取得中にエラーが発生しました: {str(e)}")
+
+
 @app.get("/incentive/user", response_model=dict)
 async def get_user_incentive_summary(
     period: Optional[str] = None,

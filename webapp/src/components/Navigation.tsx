@@ -59,6 +59,7 @@ const Navigation: React.FC = () => {
             {isAuthenticated ? (
               <>
                 <Link to="/upload" className="nav-link" onClick={handleLinkClick}>アップロード</Link>
+                <Link to="/analytics" className="nav-link" onClick={handleLinkClick}>📊 分析</Link>
                 <div className="user-menu">
                   <span className="user-name">
                     {user?.username || user?.email}

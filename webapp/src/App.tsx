@@ -9,6 +9,7 @@ import Upload from './pages/Upload'
 import SignIn from './pages/SignIn'
 import SignUp from './pages/SignUp'
 import SearchDebug from './pages/SearchDebug'
+import Analytics from './pages/Analytics'
 import NotFound from './pages/NotFound'
 import './App.css'
 
@@ -28,6 +29,11 @@ function App() {
               <Route path="/upload" element={
                 <PrivateRoute>
                   <Upload />
+                </PrivateRoute>
+              } />
+              <Route path="/analytics" element={
+                <PrivateRoute>
+                  <Analytics />
                 </PrivateRoute>
               } />
               <Route path="*" element={<NotFound />} />
