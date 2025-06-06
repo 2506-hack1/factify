@@ -3,7 +3,6 @@ from aws_cdk import (
     aws_ecs as ecs,
     aws_ec2 as ec2,
     aws_ecr as ecr,
-    aws_iam as iam,
     CfnOutput,
     Duration,
 )
@@ -98,7 +97,7 @@ class FastapiFargateCdkStack(Stack):
 
         container = task_definition.add_container("FastApiContainer",
             image=ecs.ContainerImage.from_docker_image_asset(image_asset),  # ECR からのイメージを指定
-            memory_limit_mib=1024,  # Increased container memory
+            memory_limit_mib=896,  # コンテナメモリはタスクメモリ(1024MB)より少なく設定
             logging=ecs.LogDrivers.aws_logs(stream_prefix="fastapi"),  # CloudWatch Logs にログを送信
             environment=container_env,
             health_check=ecs.HealthCheck(
