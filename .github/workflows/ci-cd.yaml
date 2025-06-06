@@ -101,11 +101,20 @@ jobs:
         run: |
           source .venv/bin/activate
           echo "🚀 Starting CDK deployment..."
+          # CDK bootstrapが必要な場合のチェック
+          if ! cdk ls > /dev/null 2>&1; then
+            echo "CDK bootstrap required..."
+            cdk bootstrap
+          fi
           # ホットスワップ機能で高速デプロイ
           cdk deploy --all --require-approval never --app "python3 app.py" \
-            --hotswap --progress events --concurrency 10 || {
+            --hotswap --progress events --concurrency 10 \
+            --strict --no-version-reporting || {
             echo "❌ CDK deployment failed! Checking logs..."
-            cdk doctor
+            echo "🔍 CDK Context:"
+            cat cdk.context.json 2>/dev/null || echo "No CDK context found"
+            echo "🔍 CDK Version:"
+            cdk --version
             exit 1
           }
         working-directory: ./infra
