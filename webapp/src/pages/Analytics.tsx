@@ -1,42 +1,96 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/Tabs.tsx';
 import { Badge } from '../components/ui/Badge.tsx';
 import { Button } from '../components/ui/Button.tsx';
-import { useAuth } from '../hooks/useAuth';
-import { useAnalyticsData, type AccessLog } from '../hooks/useSWR';
+import { api } from '../services/apiClient';
+import { authService } from '../services/authService';
 import './Analytics.css';
 
-const Analytics: React.FC = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
-  
-  // useAuthフックから認証情報を取得
-  const { isAuthenticated, loading: authLoading } = useAuth();
-  
-  // SWRを使ってデータを取得
-  const {
-    userStats,
-    incentiveData,
-    accessLogs,
-    weeklyActivity,
-    isLoading: dataLoading,
-    error,
-  } = useAnalyticsData(selectedPeriod, isAuthenticated);
-
-  console.log('🎯 Analytics render:', {
-    isAuthenticated,
-    authLoading,
-    dataLoading,
-    hasError: !!error,
-    selectedPeriod,
-    hasWeeklyActivity: !!weeklyActivity,
-  });
-
-  // 手動再読み込み関数（SWRのmutateを使用可能）
-  const handleRetry = () => {
-    console.log('🔄 Manual retry requested');
-    window.location.reload(); // シンプルにページリロード
+interface UserStats {
+  success: boolean;
+  user_id: string;
+  statistics: {
+    total_files: number;
+    file_types: Record<string, number>;
+    total_text_length: number;
+    average_text_length: number;
   };
+}
+
+interface DocumentAccessDetails {
+  access_count: number;
+  unique_users: number;
+}
+
+interface IncentiveData {
+  success: boolean;
+  owner_user_id: string;
+  period: string;
+  total_access_count: number;
+  unique_users_count: number;
+  total_incentive_points: number;
+  document_access_details: Record<string, DocumentAccessDetails>;
+}
+
+interface AccessLog {
+  transaction_id: string;
+  accessed_document_id: string;
+  timestamp: string;
+  search_query: string;
+  search_rank: number;
+  access_type: string;
+}
+
+interface UserAccessLogs {
+  success: boolean;
+  user_id: string;
+  total_logs: number;
+  access_logs: AccessLog[];
+}
+
+const Analytics: React.FC = () => {
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [incentiveData, setIncentiveData] = useState<IncentiveData | null>(null);
+  const [accessLogs, setAccessLogs] = useState<UserAccessLogs | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+
+  const isAuthenticated = authService.isAuthenticated();
+
+  const loadAnalyticsData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // 並列でデータを取得
+      const [statsResponse, incentiveResponse, logsResponse] = await Promise.all([
+        api.get<UserStats>('/files/user/stats'),
+        api.get<IncentiveData>(`/incentive/user?period=${selectedPeriod}`),
+        api.get<UserAccessLogs>('/access-logs/user')
+      ]);
+
+      setUserStats(statsResponse);
+      setIncentiveData(incentiveResponse);
+      setAccessLogs(logsResponse);
+    } catch (err) {
+      console.error('Analytics data loading error:', err);
+      setError('データの読み込みに失敗しました');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedPeriod]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setError('認証が必要です');
+      setLoading(false);
+      return;
+    }
+
+    loadAnalyticsData();
+  }, [isAuthenticated, loadAnalyticsData]);
 
   const formatFileType = (fileType: string): string => {
     const typeMap: Record<string, string> = {
@@ -70,7 +124,7 @@ const Analytics: React.FC = () => {
     );
   }
 
-  if (authLoading || dataLoading) {
+  if (loading) {
     return (
       <div className="analytics-container">
         <div className="loading-spinner">データを読み込み中...</div>
@@ -83,8 +137,8 @@ const Analytics: React.FC = () => {
       <div className="analytics-container">
         <Card>
           <CardContent className="text-center py-8">
-            <p className="text-red-600">データの読み込みに失敗しました: {error.message || error}</p>
-            <Button onClick={handleRetry} className="mt-4">
+            <p className="text-red-600">{error}</p>
+            <Button onClick={loadAnalyticsData} className="mt-4">
               再試行
             </Button>
           </CardContent>
@@ -113,7 +167,7 @@ const Analytics: React.FC = () => {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">概要</TabsTrigger>
           <TabsTrigger value="files">ファイル統計</TabsTrigger>
-          <TabsTrigger value="incentives">インセンティブ</TabsTrigger>
+          <TabsTrigger value="revenue">💰 収益</TabsTrigger>
           <TabsTrigger value="activity">アクティビティ</TabsTrigger>
         </TabsList>
 
@@ -132,7 +186,7 @@ const Analytics: React.FC = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>🎯 今月のインセンティブ</CardTitle>
+                <CardTitle>💰 今月の収益</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="stat-value">{incentiveData?.total_incentive_points || 0}</div>
@@ -157,6 +211,26 @@ const Analytics: React.FC = () => {
               <CardContent>
                 <div className="stat-value">{incentiveData?.total_access_count || 0}</div>
                 <p className="stat-label">回アクセス</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>💰 収益ポイント</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="stat-value">{incentiveData?.total_incentive_points || 0}</div>
+                <p className="stat-label">今月の獲得ポイント</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>📊 総アクセス数</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="stat-value">{incentiveData?.total_access_count || 0}</div>
+                <p className="stat-label">今月のアクセス数</p>
               </CardContent>
             </Card>
           </div>
@@ -207,48 +281,79 @@ const Analytics: React.FC = () => {
           </div>
         </TabsContent>
 
-        {/* インセンティブタブ */}
-        <TabsContent value="incentives" className="incentives-tab">
-          <Card>
-            <CardHeader>
-              <CardTitle>🎁 インセンティブ詳細 ({selectedPeriod})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="incentive-summary">
-                <div className="incentive-overview">
-                  <div className="incentive-metric">
-                    <span className="incentive-label">基本ポイント:</span>
-                    <span className="incentive-value">{incentiveData?.total_access_count || 0} pt</span>
-                  </div>
-                  <div className="incentive-metric">
-                    <span className="incentive-label">ユニークユーザーボーナス:</span>
-                    <span className="incentive-value">{(incentiveData?.unique_users_count || 0) * 5} pt</span>
-                  </div>
-                  <div className="incentive-metric total">
-                    <span className="incentive-label">合計:</span>
-                    <span className="incentive-value">{incentiveData?.total_incentive_points || 0} pt</span>
-                  </div>
-                </div>
-
-                {incentiveData?.document_access_details && (
-                  <div className="document-details">
-                    <h4>ドキュメント別詳細</h4>
-                    <div className="document-list">
-                      {Object.entries(incentiveData.document_access_details).map(([docId, details]) => (
-                        <div key={docId} className="document-item">
-                          <div className="document-id">{docId.slice(0, 8)}...</div>
-                          <div className="document-stats">
-                            <span>アクセス: {details.access_count}回</span>
-                            <span>ユーザー: {details.unique_users}人</span>
-                          </div>
-                        </div>
-                      ))}
+        {/* 収益タブ */}
+        <TabsContent value="revenue" className="revenue-tab">
+          <div className="files-stats-grid">
+            <Card>
+              <CardHeader>
+                <CardTitle>💰 収益概要 ({selectedPeriod})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="revenue-summary">
+                  <div className="revenue-overview">
+                    <div className="revenue-metric">
+                      <span className="revenue-label">総収益ポイント:</span>
+                      <span className="revenue-value">{incentiveData?.total_incentive_points || 0} pt</span>
+                    </div>
+                    <div className="revenue-metric">
+                      <span className="revenue-label">総アクセス数:</span>
+                      <span className="revenue-value">{incentiveData?.total_access_count || 0}回</span>
+                    </div>
+                    <div className="revenue-metric">
+                      <span className="revenue-label">ユニークユーザー:</span>
+                      <span className="revenue-value">{incentiveData?.unique_users_count || 0}人</span>
+                    </div>
+                    <div className="revenue-metric">
+                      <span className="revenue-label">平均アクセス単価:</span>
+                      <span className="revenue-value">
+                        {incentiveData?.total_access_count 
+                          ? Math.round((incentiveData.total_incentive_points / incentiveData.total_access_count) * 100) / 100
+                          : 0
+                        } pt/回
+                      </span>
                     </div>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>📊 ドキュメント別収益</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {incentiveData?.document_access_details && (
+                  <div className="document-revenue-list">
+                    {Object.entries(incentiveData.document_access_details)
+                      .sort(([,a], [,b]) => b.access_count - a.access_count)
+                      .map(([docId, details]) => {
+                        const revenue = details.access_count + (details.unique_users * 5);
+                        return (
+                          <div key={docId} className="document-revenue-item">
+                            <div className="document-info">
+                              <span className="document-id">{docId.slice(0, 8)}...</span>
+                              <div className="document-stats">
+                                <span>アクセス: {details.access_count}回</span>
+                                <span>ユーザー: {details.unique_users}人</span>
+                              </div>
+                            </div>
+                            <div className="document-revenue">
+                              <span className="revenue-amount">{revenue} pt</span>
+                              <div className="revenue-breakdown">
+                                <small>基本: {details.access_count}pt + ボーナス: {details.unique_users * 5}pt</small>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+                {(!incentiveData?.document_access_details || Object.keys(incentiveData.document_access_details).length === 0) && (
+                  <p className="no-revenue">まだ収益がありません。ドキュメントをアップロードして他のユーザーに参照してもらいましょう！</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* アクティビティタブ */}
@@ -259,7 +364,7 @@ const Analytics: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="activity-list">
-                {accessLogs?.access_logs?.slice(0, 20).map((log: AccessLog) => (
+                {accessLogs?.access_logs?.slice(0, 20).map((log) => (
                   <div key={log.transaction_id} className="activity-item">
                     <div className="activity-info">
                       <span className="activity-query">"{log.search_query}"</span>

@@ -413,16 +413,25 @@ class AccessLoggerService:
             import random
             from datetime import datetime, timedelta
             
-            # ダミーユーザーIDリスト
+            # 実在するユーザーID + ダミーユーザーIDリスト
             dummy_users = [
+                'e7140a18-e051-702b-0341-77c46b86e717',  # 実在のユーザーID
                 'user001', 'user002', 'user003', 'user004', 'user005',
                 'user006', 'user007', 'user008', 'user009', 'user010'
             ]
             
-            # ダミードキュメントIDリスト
+            # 実在するドキュメントIDリスト（DynamoDBから取得した実際のID）
             dummy_documents = [
-                'doc001', 'doc002', 'doc003', 'doc004', 'doc005',
-                'doc006', 'doc007', 'doc008', 'doc009', 'doc010'
+                '5f029e5c-cb8b-4f2e-9120-2b7cf718fac5',  # python_guide
+                'a4b69f0e-5361-4568-9c18-cfb30ac649a2',  # ml_basics
+                'eae90aa0-d217-4bf8-a2dc-139017850272',  # chat_history (2)
+                'd541a0c7-dfaf-43e9-9d8c-7bab36e2c122',  # ml_basics
+                '9204b69b-97bf-4d97-b584-682e3c350b34',  # aws_opensearch
+                '93632a7c-bca4-49c8-a4cc-b9006d345b7c',  # python_guide
+                '69645cd5-c6a0-4785-a98a-74b51224fd3c',  # aws_opensearch
+                '225f4b5c-6de1-46bc-b5d3-1218e2fa3cba',  # ml_basics
+                '8df4c38a-8261-4d1a-ac91-c9cacc7e2d27',  # aws_opensearch
+                'f5629232-1b8a-42d6-9953-aa70e228b270'   # python_guide
             ]
             
             # ダミー検索クエリリスト
