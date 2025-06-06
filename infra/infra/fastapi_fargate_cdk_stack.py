@@ -58,10 +58,17 @@ class FastapiFargateCdkStack(Stack):
         # ローカルの Dockerfile とソースコードから Docker イメージをビルドし、ECR にプッシュするためのアセット
         image_asset = DockerImageAsset(self, 'FastApiDockerImage', 
             directory='../api',
-            repository_name=ecr_repo.repository_name,
             build_args={
                 "BUILDKIT_INLINE_CACHE": "1"
-            }
+            },
+            exclude=[
+                "**/__pycache__",
+                "**/*.pyc",
+                "**/.*",
+                "**/*.md",
+                "**/tests",
+                "**/debug"
+            ]
         )
 
         # 5. Task Definition - Increased resources for faster startup
