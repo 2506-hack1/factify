@@ -1,0 +1,135 @@
+=== ECS Service Debug Information ===
+Generated at: Fri Jun  6 18:52:30 JST 2025
+
+=== ECS Cluster Status ===
+
+=== ECS Service Details ===
+
+An error occurred (ClusterNotFoundException) when calling the DescribeServices operation: Cluster not found.
+=== ECS Services List ===
+
+An error occurred (ClusterNotFoundException) when calling the ListServices operation: Cluster not found.
+=== CloudFormation Stack Events (Last 20) ===
+
+An error occurred (ValidationError) when calling the DescribeStackEvents operation: Stack [FactifyStack] does not exist
+=== CloudFormation Stack Status ===
+
+An error occurred (ValidationError) when calling the DescribeStacks operation: Stack with id FactifyStack does not exist
+=== CloudFormation Stack List ===
+--------------------------------------------------------------------------------------
+|                                     ListStacks                                     |
++----------------------------------+--------------------------+----------------------+
+|            LastUpdated           |        StackName         |     StackStatus      |
++----------------------------------+--------------------------+----------------------+
+|  2025-06-05T14:49:32.525000+00:00|  OpenSearchStack         |  UPDATE_COMPLETE     |
+|  2025-06-06T08:26:59.688000+00:00|  FastapiFargateCdkStack  |  UPDATE_IN_PROGRESS  |
+|  2025-06-05T01:32:18.672000+00:00|  S3CloudFrontStack       |  CREATE_COMPLETE     |
+|  2025-06-05T12:11:58.838000+00:00|  CognitoAuthStack        |  UPDATE_COMPLETE     |
+|  2025-06-06T05:14:15.601000+00:00|  DbStorageStack          |  UPDATE_COMPLETE     |
+|  2025-05-30T18:21:12.629000+00:00|  CDKToolkit              |  CREATE_COMPLETE     |
++----------------------------------+--------------------------+----------------------+
+
+=== CDK Context and Stack Names ===
+Current CDK context:
+{
+  "availability-zones:account=471112951833:region=ap-northeast-1": [
+    "ap-northeast-1a",
+    "ap-northeast-1c",
+    "ap-northeast-1d"
+  ],
+  "availability-zones:account=277707094055:region=ap-northeast-1": [
+    "ap-northeast-1a",
+    "ap-northeast-1c",
+    "ap-northeast-1d"
+  ]
+}
+
+=== CDK App Configuration ===
+CDK app.py contents:
+#!/usr/bin/env python3
+import os
+
+import aws_cdk as cdk
+
+# 元のインポート: from fastapi_fargate_cdk.fastapi_fargate_cdk_stack import FastapiFargateCdkStack
+# ディレクトリ構造変更後のインポート
+from infra.fastapi_fargate_cdk_stack import FastapiFargateCdkStack
+from infra.db_storage_stack import DbStorageStack
+from infra.s3_cloudfront_stack import S3CloudFrontStack
+from infra.cognito_auth_stack import CognitoAuthStack
+from infra.opensearch_stack import OpenSearchStack
+
+app = cdk.App()
+target_env = cdk.Environment(
+    account=os.getenv('CDK_DEFAULT_ACCOUNT'),
+    region="ap-northeast-1"
+)
+
+# Cognito認証スタック（新規追加）
+cognito_stack = CognitoAuthStack(app, "CognitoAuthStack",
+    env=target_env,
+)
+
+db_storage_stack = DbStorageStack(app, "DbStorageStack",
+    env=target_env,
+)
+
+# OpenSearch検索エンジンスタック（新規追加）
+opensearch_stack = OpenSearchStack(app, "OpenSearchStack",
+    env=target_env,
+)
+
+fastapi_stack = FastapiFargateCdkStack(app, "FastapiFargateCdkStack",
+    env=target_env,
+    db_storage_stack=db_storage_stack,
+    cognito_stack=cognito_stack,
+)
+
+# S3 + CloudFront stack for React webapp
+S3CloudFrontStack(app, "S3CloudFrontStack",
+    env=target_env,
+    api_endpoint=fastapi_stack.api_endpoint,
+)
+
+app.synth()
+=== Correct Stack Names Investigation ===
+FastAPI Fargate Stack Status:
+-----------------------------------------------------
+|                  DescribeStacks                   |
++--------------+------------------------------------+
+|  LastUpdated |  2025-06-06T08:26:59.688000+00:00  |
+|  StackName   |  FastapiFargateCdkStack            |
+|  StackStatus |  UPDATE_IN_PROGRESS                |
++--------------+------------------------------------+
+
+FastAPI Stack Events (Last 10):
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|                                                                               DescribeStackEvents                                                                              |
++--------------------+------------------------------------------------------------------------------------------+---------------------------+------------------------------------+
+|   ResourceStatus   |                                  ResourceStatusReason                                    |       ResourceType        |             Timestamp              |
++--------------------+------------------------------------------------------------------------------------------+---------------------------+------------------------------------+
+|  UPDATE_IN_PROGRESS|  None                                                                                    |  AWS::ECS::Service        |  2025-06-06T08:27:22.171000+00:00  |
+|  UPDATE_COMPLETE   |  None                                                                                    |  AWS::IAM::Policy         |  2025-06-06T08:27:20.537000+00:00  |
+|  UPDATE_COMPLETE   |  None                                                                                    |  AWS::ECS::TaskDefinition |  2025-06-06T08:27:10.227000+00:00  |
+|  UPDATE_IN_PROGRESS|  Resource creation Initiated                                                             |  AWS::ECS::TaskDefinition |  2025-06-06T08:27:08.876000+00:00  |
+|  UPDATE_IN_PROGRESS|  Requested update requires the creation of a new physical resource; hence creating one.  |  AWS::ECS::TaskDefinition |  2025-06-06T08:27:07.461000+00:00  |
+|  CREATE_COMPLETE   |  None                                                                                    |  AWS::ECR::Repository     |  2025-06-06T08:27:06.144000+00:00  |
+|  UPDATE_COMPLETE   |  None                                                                                    |  AWS::CDK::Metadata       |  2025-06-06T08:27:05.407000+00:00  |
+|  CREATE_IN_PROGRESS|  Resource creation Initiated                                                             |  AWS::ECR::Repository     |  2025-06-06T08:27:05.297000+00:00  |
+|  UPDATE_IN_PROGRESS|  None                                                                                    |  AWS::IAM::Policy         |  2025-06-06T08:27:04.454000+00:00  |
+|  UPDATE_IN_PROGRESS|  None                                                                                    |  AWS::CDK::Metadata       |  2025-06-06T08:27:04.450000+00:00  |
++--------------------+------------------------------------------------------------------------------------------+---------------------------+------------------------------------+
+
+All Existing Stacks:
+--------------------------------------------------------------------------------------
+|                                     ListStacks                                     |
++----------------------------------+--------------------------+----------------------+
+|            LastUpdated           |        StackName         |     StackStatus      |
++----------------------------------+--------------------------+----------------------+
+|  2025-06-05T14:49:32.525000+00:00|  OpenSearchStack         |  UPDATE_COMPLETE     |
+|  2025-06-06T08:26:59.688000+00:00|  FastapiFargateCdkStack  |  UPDATE_IN_PROGRESS  |
+|  2025-06-05T01:32:18.672000+00:00|  S3CloudFrontStack       |  CREATE_COMPLETE     |
+|  2025-06-05T12:11:58.838000+00:00|  CognitoAuthStack        |  UPDATE_COMPLETE     |
+|  2025-06-06T05:14:15.601000+00:00|  DbStorageStack          |  UPDATE_COMPLETE     |
+|  2025-05-30T18:21:12.629000+00:00|  CDKToolkit              |  CREATE_COMPLETE     |
++----------------------------------+--------------------------+----------------------+
