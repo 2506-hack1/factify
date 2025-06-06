@@ -49,3 +49,50 @@ class UploadResponse(BaseModel):
     file_id: str
     message: str
     metadata: Document
+
+
+class AccessLog(BaseModel):
+    """
+    アクセス履歴記録用モデル
+    """
+    transaction_id: str
+    accessed_document_id: str
+    accessing_user_id: str
+    document_owner_id: str
+    timestamp: str
+    search_query: str
+    search_rank: int
+    access_type: str  # "search_result", "view", "download"
+
+
+class IncentiveSummary(BaseModel):
+    """
+    インセンティブ集計用モデル
+    """
+    owner_user_id: str
+    period: str  # YYYY-MM形式
+    total_access_count: int
+    unique_users_count: int
+    total_incentive_points: int
+    document_access_details: Dict[str, Any]
+
+
+class IncentiveRequest(BaseModel):
+    """
+    インセンティブ取得リクエスト用モデル
+    """
+    user_id: Optional[str] = None
+    period: Optional[str] = None  # YYYY-MM形式
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+
+class IncentiveResponse(BaseModel):
+    """
+    インセンティブレスポンス用モデル
+    """
+    success: bool
+    user_id: str
+    period: str
+    summary: IncentiveSummary
+    detailed_logs: List[AccessLog]

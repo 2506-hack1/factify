@@ -46,6 +46,68 @@ class DbStorageStack(Stack):
             projection_type=dynamodb.ProjectionType.ALL
         )
 
+        # アクセス履歴記録用DynamoDBテーブルの作成
+        self.access_logs_table = dynamodb.Table(
+            self,
+            "FactifyAccessLogsTable",
+            table_name=f"factify-access-logs-{self.account}-{self.region}",
+            partition_key=dynamodb.Attribute(
+                name="transaction_id",
+                type=dynamodb.AttributeType.STRING  # UUID
+            ),
+            sort_key=dynamodb.Attribute(
+                name="timestamp",
+                type=dynamodb.AttributeType.STRING  # ISO 8601形式
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=RemovalPolicy.DESTROY,
+        )
+
+        # アクセス履歴用GSI（ドキュメント別アクセス履歴検索用）
+        self.access_logs_table.add_global_secondary_index(
+            index_name="DocumentAccessIndex",
+            partition_key=dynamodb.Attribute(
+                name="accessed_document_id",
+                type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="timestamp",
+                type=dynamodb.AttributeType.STRING
+            ),
+            projection_type=dynamodb.ProjectionType.ALL
+        )
+
+        # アクセス履歴用GSI（ユーザー別アクセス履歴検索用）
+        self.access_logs_table.add_global_secondary_index(
+            index_name="UserAccessIndex",
+            partition_key=dynamodb.Attribute(
+                name="accessing_user_id",
+                type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="timestamp",
+                type=dynamodb.AttributeType.STRING
+            ),
+            projection_type=dynamodb.ProjectionType.ALL
+        )
+
+        # インセンティブ集計用DynamoDBテーブルの作成
+        self.incentive_summary_table = dynamodb.Table(
+            self,
+            "FactifyIncentiveSummaryTable",
+            table_name=f"factify-incentive-summary-{self.account}-{self.region}",
+            partition_key=dynamodb.Attribute(
+                name="owner_user_id",
+                type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="period",
+                type=dynamodb.AttributeType.STRING  # YYYY-MM形式
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=RemovalPolicy.DESTROY,
+        )
+
         # S3バケットの作成
         self.bucket = s3.Bucket(
             self, 
@@ -78,6 +140,20 @@ class DbStorageStack(Stack):
             description="DynamoDB Table Name"
         )
 
+        CfnOutput(
+            self,
+            "AccessLogsTableName",
+            value=self.access_logs_table.table_name,
+            description="Access Logs DynamoDB Table Name"
+        )
+
+        CfnOutput(
+            self,
+            "IncentiveSummaryTableName",
+            value=self.incentive_summary_table.table_name,
+            description="Incentive Summary DynamoDB Table Name"
+        )
+
     def grant_access_to_task_role(self, task_role):
         """
         指定されたタスクロールにS3バケットとDynamoDBテーブルへのアクセス権限を付与する
@@ -87,3 +163,9 @@ class DbStorageStack(Stack):
         
         # DynamoDBテーブルへのアクセス権限を付与
         self.table.grant_read_write_data(task_role)
+        
+        # アクセス履歴テーブルへのアクセス権限を付与
+        self.access_logs_table.grant_read_write_data(task_role)
+        
+        # インセンティブ集計テーブルへのアクセス権限を付与
+        self.incentive_summary_table.grant_read_write_data(task_role)

@@ -17,9 +17,10 @@ from src.metadata_handlers import (
     create_dynamodb_item
 )
 from src.aws_services import aws_services
-from src.models import Document, SearchRequest, SearchResponse, UploadResponse
+from src.models import Document, SearchRequest, SearchResponse, UploadResponse, AccessLog, IncentiveRequest, IncentiveResponse, IncentiveSummary
 from src.auth.cognito_auth import get_current_user, get_current_user_optional, require_admin
 from src.services.opensearch_service import opensearch_service
+from src.services.access_logger_service import access_logger_service
 from src.config import S3_BUCKET_NAME
 from boto3.dynamodb.conditions import Attr
 
@@ -362,6 +363,20 @@ async def search_documents(search_request: SearchRequest, current_user: dict = D
             )
             results.append(document)
         
+        # 🎯 アクセス履歴記録（非同期・ノンブロッキング）
+        if current_user and search_results:
+            try:
+                accessing_user_id = current_user.get("user_id")
+                if accessing_user_id:
+                    # バックグラウンドでアクセス記録（エラーが発生しても検索レスポンスには影響しない）
+                    access_logger_service.log_search_access(
+                        accessed_documents=search_results,
+                        accessing_user_id=accessing_user_id,
+                        search_query=search_request.query
+                    )
+            except Exception as log_error:
+                print(f"アクセス記録エラー（無視して処理継続）: {log_error}")
+        
         return SearchResponse(
             success=True,
             query=search_request.query,
@@ -600,3 +615,187 @@ async def debug_opensearch_search(search_data: dict):
         
     except Exception as e:
         return {"error": str(e)}
+
+
+# ==================== インセンティブ・アクセス履歴管理API ====================
+
+@app.get("/access-logs/user", response_model=dict)
+async def get_user_access_logs(current_user: dict = Depends(get_current_user)):
+    """
+    認証されたユーザーのアクセス履歴を取得します
+    """
+    try:
+        user_id = current_user.get("user_id")
+        
+        access_logs = access_logger_service.get_user_access_logs(
+            user_id=user_id,
+            limit=100
+        )
+        
+        return {
+            "success": True,
+            "user_id": user_id,
+            "total_logs": len(access_logs),
+            "access_logs": access_logs
+        }
+        
+    except Exception as e:
+        print(f"アクセス履歴取得エラー: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"アクセス履歴取得中にエラーが発生しました: {str(e)}")
+
+
+@app.get("/incentive/user", response_model=dict)
+async def get_user_incentive_summary(
+    period: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    認証されたユーザーのインセンティブ集計を取得します
+    
+    Parameters:
+    -----------
+    period : str, optional
+        対象月 (YYYY-MM形式、未指定の場合は当月)
+    """
+    try:
+        user_id = current_user.get("user_id")
+        
+        # 期間が未指定の場合は当月を使用
+        if not period:
+            from datetime import datetime
+            period = datetime.now().strftime("%Y-%m")
+        
+        # インセンティブポイントを計算
+        incentive_data = access_logger_service.calculate_incentive_points(
+            owner_user_id=user_id,
+            period_month=period
+        )
+        
+        if not incentive_data:
+            return {
+                "success": True,
+                "user_id": user_id,
+                "period": period,
+                "total_access_count": 0,
+                "unique_users_count": 0,
+                "total_incentive_points": 0,
+                "document_access_details": {}
+            }
+        
+        # 集計結果を保存
+        access_logger_service.save_incentive_summary(incentive_data)
+        
+        return {
+            "success": True,
+            **incentive_data
+        }
+        
+    except Exception as e:
+        print(f"インセンティブ取得エラー: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"インセンティブ取得中にエラーが発生しました: {str(e)}")
+
+
+@app.get("/incentive/document/{document_id}", response_model=dict)
+async def get_document_access_stats(
+    document_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    指定されたドキュメントのアクセス統計を取得します
+    """
+    try:
+        user_id = current_user.get("user_id")
+        
+        # ドキュメントの所有者確認
+        response = aws_services.get_dynamodb_table().get_item(
+            Key={'id': document_id}
+        )
+        
+        if 'Item' not in response:
+            raise HTTPException(status_code=404, detail="ドキュメントが見つかりません")
+        
+        document_item = response['Item']
+        document_owner_id = document_item.get('user_id')
+        
+        # 所有者チェック
+        if document_owner_id != user_id:
+            raise HTTPException(status_code=403, detail="このドキュメントの統計を確認する権限がありません")
+        
+        # アクセス統計を取得
+        access_stats = access_logger_service.get_document_access_stats(
+            document_id=document_id,
+            period_days=30
+        )
+        
+        return {
+            "success": True,
+            "document_info": {
+                "id": document_id,
+                "title": document_item.get('title', ''),
+                "file_name": document_item.get('file_name', ''),
+                "uploaded_at": document_item.get('uploaded_at', '')
+            },
+            **access_stats
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"ドキュメント統計取得エラー: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"統計取得中にエラーが発生しました: {str(e)}")
+
+
+@app.post("/admin/incentive/batch-calculate")
+async def batch_calculate_incentives(current_user: dict = Depends(require_admin)):
+    """
+    全ユーザーのインセンティブを一括計算します（管理者専用）
+    """
+    try:
+        from datetime import datetime
+        current_month = datetime.now().strftime("%Y-%m")
+        
+        # 全ユーザーを取得
+        response = aws_services.get_dynamodb_table().scan()
+        items = response.get('Items', [])
+        
+        # ユニークなユーザーIDを抽出
+        user_ids = set()
+        for item in items:
+            user_id = item.get('user_id')
+            if user_id and user_id != 'anonymous':
+                user_ids.add(user_id)
+        
+        processed_users = 0
+        failed_users = 0
+        
+        for user_id in user_ids:
+            try:
+                # インセンティブ計算
+                incentive_data = access_logger_service.calculate_incentive_points(
+                    owner_user_id=user_id,
+                    period_month=current_month
+                )
+                
+                if incentive_data:
+                    # 集計結果を保存
+                    access_logger_service.save_incentive_summary(incentive_data)
+                    processed_users += 1
+                
+            except Exception as user_error:
+                print(f"ユーザー {user_id} のインセンティブ計算エラー: {user_error}")
+                failed_users += 1
+        
+        return {
+            "success": True,
+            "message": "インセンティブ一括計算が完了しました",
+            "statistics": {
+                "total_users": len(user_ids),
+                "processed_users": processed_users,
+                "failed_users": failed_users,
+                "period": current_month
+            }
+        }
+        
+    except Exception as e:
+        print(f"インセンティブ一括計算エラー: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"一括計算中にエラーが発生しました: {str(e)}")
