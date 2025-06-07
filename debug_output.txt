@@ -1,10 +1,255 @@
+🌸 CDKデプロイを実行いたしますわ～！
+b'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n'
+b'!!                                                                                                                      !!\n'
+b'!!  This software has not been tested with node v23.9.0.                                                                !!\n'
+b'!!  Should you encounter odd runtime issues, please try using one of the supported release before filing a bug report.  !!\n'
+b'!!                                                                                                                      !!\n'
+b'!!  This software is currently running on node v23.9.0.                                                                 !!\n'
+b'!!  As of the current release of this software, supported node releases are:                                            !!\n'
+b'!!  - ^22.0.0 (Planned end-of-life: 2027-04-30)                                                                         !!\n'
+b'!!  - ^20.0.0 (Planned end-of-life: 2026-04-30)                                                                         !!\n'
+b'!!                                                                                                                      !!\n'
+b'!!  This warning can be silenced by setting the JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION environment variable.        !!\n'
+b'!!                                                                                                                      !!\n'
+b'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n'
+[WARNING] aws-cdk-lib.aws_cloudfront_origins.S3Origin is deprecated.
+  Use `S3BucketOrigin` or `S3StaticWebsiteOrigin` instead.
+  This API will be removed in the next major release.
+[WARNING] aws-cdk-lib.aws_cloudfront_origins.S3Origin#bind is deprecated.
+  Use `S3BucketOrigin` or `S3StaticWebsiteOrigin` instead.
+  This API will be removed in the next major release.
+
+✨  Synthesis time: 27.18s
+
+CognitoAuthStack
+FastapiFargateCdkStack: start: Building FastapiFargateCdkStack Template
+FastapiFargateCdkStack: success: Built FastapiFargateCdkStack Template
+FastapiFargateCdkStack: start: Building FastApiDockerImage
+CognitoAuthStack: deploying... [1/5]
+
+ ✅  CognitoAuthStack (no changes)
+
+✨  Deployment time: 0.61s
+
+Outputs:
+CognitoAuthStack.ExportsOutputRefFactifyUserPool72589FCEFD3C8A50 = ap-northeast-1_djKleJ9sI
+CognitoAuthStack.ExportsOutputRefFactifyUserPoolFactifyWebClient0A73F09B3295E73C = 7vo039n3ss61uaiieqb1toi6sq
+CognitoAuthStack.UserPoolClientId = 7vo039n3ss61uaiieqb1toi6sq
+CognitoAuthStack.UserPoolId = ap-northeast-1_djKleJ9sI
+Stack ARN:
+arn:aws:cloudformation:ap-northeast-1:471112951833:stack/CognitoAuthStack/446168c0-4329-11f0-8a60-06022d561bd5
+
+✨  Total time: 27.79s
+
+DbStorageStack
+DbStorageStack: deploying... [2/5]
+
+ ✅  DbStorageStack (no changes)
+
+✨  Deployment time: 0.41s
+
+Outputs:
+DbStorageStack.AccessLogsTableName = factify-access-logs-471112951833-ap-northeast-1
+DbStorageStack.DataS3BucketName = factify-s3-bucket-471112951833-ap-northeast-1
+DbStorageStack.DynamoDBTableName = factify-dynamodb-table-471112951833-ap-northeast-1
+DbStorageStack.ExportsOutputFnGetAttFactifyAccessLogsTable0C12AA6EArn78DC6064 = arn:aws:dynamodb:ap-northeast-1:471112951833:table/factify-access-logs-471112951833-ap-northeast-1
+DbStorageStack.ExportsOutputFnGetAttFactifyBucketD7FFCA10Arn980583CD = arn:aws:s3:::factify-s3-bucket-471112951833-ap-northeast-1
+DbStorageStack.ExportsOutputFnGetAttFactifyIncentiveSummaryTable82529B33Arn11F6D40B = arn:aws:dynamodb:ap-northeast-1:471112951833:table/factify-incentive-summary-471112951833-ap-northeast-1
+DbStorageStack.ExportsOutputFnGetAttFactifyTableC6921E75Arn3334F57F = arn:aws:dynamodb:ap-northeast-1:471112951833:table/factify-dynamodb-table-471112951833-ap-northeast-1
+DbStorageStack.ExportsOutputRefFactifyBucketD7FFCA107B590A86 = factify-s3-bucket-471112951833-ap-northeast-1
+DbStorageStack.ExportsOutputRefFactifyTableC6921E750E73C804 = factify-dynamodb-table-471112951833-ap-northeast-1
+DbStorageStack.IncentiveSummaryTableName = factify-incentive-summary-471112951833-ap-northeast-1
+Stack ARN:
+arn:aws:cloudformation:ap-northeast-1:471112951833:stack/DbStorageStack/52784820-4329-11f0-a974-06ac24406701
+
+✨  Total time: 27.59s
+
+OpenSearchStack
+FastapiFargateCdkStack: start: Publishing FastapiFargateCdkStack Template (471112951833-ap-northeast-1)
+OpenSearchStack: deploying... [3/5]
+
+ ✅  OpenSearchStack (no changes)
+
+✨  Deployment time: 0.47s
+
+Outputs:
+OpenSearchStack.OpenSearchDashboardsURL = https://search-factify-search-demo-zv7xz3e4q2wwgm2eer2aoirt2e.ap-northeast-1.es.amazonaws.com/_dashboards
+OpenSearchStack.OpenSearchEndpoint = search-factify-search-demo-zv7xz3e4q2wwgm2eer2aoirt2e.ap-northeast-1.es.amazonaws.com
+Stack ARN:
+arn:aws:cloudformation:ap-northeast-1:471112951833:stack/OpenSearchStack/6b116e70-4329-11f0-96bf-06d23f2163e3
+
+✨  Total time: 27.65s
+
+S3CloudFrontStack
+FastapiFargateCdkStack: success: Published FastapiFargateCdkStack Template (471112951833-ap-northeast-1)
+S3CloudFrontStack: deploying... [5/5]
+
+ ✅  S3CloudFrontStack (no changes)
+
+✨  Deployment time: 0.38s
+
+Outputs:
+S3CloudFrontStack.CloudFrontDistributionId = E2ZAN0145JGOOO
+S3CloudFrontStack.WebsiteBucketName = factify-webapp-471112951833-ap-northeast-1
+S3CloudFrontStack.WebsiteURL = https://d115mxahwr1zny.cloudfront.net
+Stack ARN:
+arn:aws:cloudformation:ap-northeast-1:471112951833:stack/S3CloudFrontStack/7dc43230-432b-11f0-a2ce-0ad5d2c907dd
+
+✨  Total time: 27.56s
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 846B done
+#1 WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 2)
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/python:3.9-slim
+#2 DONE 1.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 189B done
+#3 DONE 0.1s
+
+#4 [builder 1/5] FROM docker.io/library/python:3.9-slim@sha256:657a140aae5f8eb61c69c3df950fade52f1a7924f88612071acccb863a9efe0f
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 120.58kB 0.0s done
+#5 DONE 0.1s
+
+#6 [stage-1 2/5] RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+#6 CACHED
+
+#7 [builder 2/5] RUN apt-get update && apt-get install -y     gcc     && rm -rf /var/lib/apt/lists/*
+#7 CACHED
+
+#8 [builder 4/5] COPY requirements.txt .
+#8 CACHED
+
+#9 [stage-1 3/5] COPY --from=builder /root/.local /root/.local
+#9 CACHED
+
+#10 [builder 3/5] WORKDIR /app
+#10 CACHED
+
+#11 [builder 5/5] RUN pip install --user --no-cache-dir -r requirements.txt
+#11 CACHED
+
+#12 [stage-1 4/5] WORKDIR /app
+#12 CACHED
+
+#13 [stage-1 5/5] COPY . .
+#13 DONE 0.1s
+
+#14 exporting to image
+#14 exporting layers 0.1s done
+#14 preparing layers for inline cache done
+#14 writing image sha256:edd47cafeffd5d6621d8cadf630c4fa9bbf5cc8daa06442b2193e6a93c13efaf done
+#14 naming to docker.io/library/cdkasset-9ffccf4f195b321d6281d0a97fdf8a9badf0a7fbf864b9b338918076eee818b1 0.0s done
+#14 DONE 0.1s
+
+ [33m1 warning found (use docker --debug to expand):
+[0m - FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 2)
+FastapiFargateCdkStack: success: Built FastApiDockerImage
+FastapiFargateCdkStack: start: Publishing FastApiDockerImage (471112951833-ap-northeast-1)
+The push refers to repository [471112951833.dkr.ecr.ap-northeast-1.amazonaws.com/cdk-hnb659fds-container-assets-471112951833-ap-northeast-1]
+a4228335dbe9: Preparing
+28f8a4f6af1d: Preparing
+72863d30e768: Preparing
+a5e1ce837b24: Preparing
+978f260c1369: Preparing
+9b5482944372: Preparing
+9ad43ba78452: Preparing
+ace34d1d784c: Preparing
+9b5482944372: Waiting
+9ad43ba78452: Waiting
+ace34d1d784c: Waiting
+28f8a4f6af1d: Layer already exists
+a5e1ce837b24: Layer already exists
+978f260c1369: Layer already exists
+72863d30e768: Layer already exists
+ace34d1d784c: Layer already exists
+9ad43ba78452: Layer already exists
+9b5482944372: Layer already exists
+a4228335dbe9: Pushed
+9ffccf4f195b321d6281d0a97fdf8a9badf0a7fbf864b9b338918076eee818b1: digest: sha256:5edb8b31636d1a2af24c3cb7c863f7095c9b2c2ace6e4c3a06ac87069432429a size: 1998
+FastapiFargateCdkStack: success: Published FastApiDockerImage (471112951833-ap-northeast-1)
+FastapiFargateCdkStack
+FastapiFargateCdkStack: deploying... [4/5]
+FastapiFargateCdkStack: creating CloudFormation changeset...
+FastapiFargateCdkStack | 0/4 | 11:23:07 AM | UPDATE_IN_PROGRESS   | AWS::CloudFormation::Stack            | FastapiFargateCdkStack User Initiated
+FastapiFargateCdkStack | 0/4 | 11:23:14 AM | UPDATE_IN_PROGRESS   | AWS::ECS::TaskDefinition              | FastApiTaskDef (FastApiTaskDef7CF496F1) Requested update requires the creation of a new physical resource; hence creating one.
+FastapiFargateCdkStack | 0/4 | 11:23:15 AM | UPDATE_IN_PROGRESS   | AWS::ECS::TaskDefinition              | FastApiTaskDef (FastApiTaskDef7CF496F1) Resource creation Initiated
+FastapiFargateCdkStack | 1/4 | 11:23:16 AM | UPDATE_COMPLETE      | AWS::ECS::TaskDefinition              | FastApiTaskDef (FastApiTaskDef7CF496F1) 
+FastapiFargateCdkStack | 1/4 | 11:23:18 AM | UPDATE_IN_PROGRESS   | AWS::ECS::Service                     | FastApiService/Service (FastApiServiceDDD840D7) 
+FastapiFargateCdkStack | 2/4 | 11:26:01 AM | UPDATE_COMPLETE      | AWS::ECS::Service                     | FastApiService/Service (FastApiServiceDDD840D7) 
+FastapiFargateCdkStack | 3/4 | 11:26:03 AM | UPDATE_COMPLETE_CLEA | AWS::CloudFormation::Stack            | FastapiFargateCdkStack 
+FastapiFargateCdkStack | 3/4 | 11:26:04 AM | DELETE_IN_PROGRESS   | AWS::ECS::TaskDefinition              | FastApiTaskDef (FastApiTaskDef7CF496F1) 
+FastapiFargateCdkStack | 2/4 | 11:26:06 AM | DELETE_COMPLETE      | AWS::ECS::TaskDefinition              | FastApiTaskDef (FastApiTaskDef7CF496F1) 
+FastapiFargateCdkStack | 3/4 | 11:26:06 AM | UPDATE_COMPLETE      | AWS::CloudFormation::Stack            | FastapiFargateCdkStack 
+
+ ✅  FastapiFargateCdkStack
+
+✨  Deployment time: 200.43s
+
+Outputs:
+FastapiFargateCdkStack.ECSClusterName = fastapi-cluster
+FastapiFargateCdkStack.ECSServiceName = FastapiFargateCdkStack-FastApiServiceDDD840D7-Olafx4dnbF5G
+Stack ARN:
+arn:aws:cloudformation:ap-northeast-1:471112951833:stack/FastapiFargateCdkStack/d1d16d60-433b-11f0-a8de-06ab2e711d8f
+
+✨  Total time: 227.61s
+
+🌸 ECSタスクのパブリックIPを取得いたしますわ～！
+🌸 取得したECSタスクのパブリックIP: 43.207.218.12
+🌸 .env.productionを更新いたしますわ～！
+🌸 Cognito設定も含めて.env.productionを更新完了ですわ～！
+🌸 webappのビルド開始ですわ～！
+
+up to date, audited 341 packages in 3s
+
+71 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+
+> webapp@0.0.0 build
+> tsc -b && vite build
+
+vite v6.3.5 building for production...
+transforming...
+✓ 737 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.46 kB │ gzip:   0.30 kB
+dist/assets/index-bfi9MxGh.css   26.01 kB │ gzip:   5.62 kB
+dist/assets/index-CJ683T03.js   430.82 kB │ gzip: 133.73 kB
+✓ built in 6.70s
+🌸 S3へアップロードいたしますわ～！
+delete: s3://factify-webapp-471112951833-ap-northeast-1/assets/index-BFULYIAw.js
+Completed 0 Bytes/868.8 KiB (0 Bytes/s) with 4 file(s) remainingCompleted 464 Bytes/868.8 KiB (2.1 KiB/s) with 4 file(s) remainingupload: dist/index.html to s3://factify-webapp-471112951833-ap-northeast-1/index.html
+Completed 464 Bytes/868.8 KiB (2.1 KiB/s) with 3 file(s) remainingCompleted 421.2 KiB/868.8 KiB (392.7 KiB/s) with 3 file(s) remainingCompleted 446.6 KiB/868.8 KiB (362.9 KiB/s) with 3 file(s) remainingupload: dist/assets/index-bfi9MxGh.css to s3://factify-webapp-471112951833-ap-northeast-1/assets/index-bfi9MxGh.css
+Completed 446.6 KiB/868.8 KiB (362.9 KiB/s) with 2 file(s) remainingCompleted 448.0 KiB/868.8 KiB (363.4 KiB/s) with 2 file(s) remainingupload: dist/vite.svg to s3://factify-webapp-471112951833-ap-northeast-1/vite.svg
+Completed 448.0 KiB/868.8 KiB (363.4 KiB/s) with 1 file(s) remainingupload: dist/assets/index-CJ683T03.js to s3://factify-webapp-471112951833-ap-northeast-1/assets/index-CJ683T03.js
+🌸 CloudFrontキャッシュを無効化いたしますわ～！
 {
-    "repository": {
-        "repositoryArn": "arn:aws:ecr:ap-northeast-1:471112951833:repository/factify-fastapi",
-        "registryId": "471112951833",
-        "repositoryName": "factify-fastapi",
-        "repositoryUri": "471112951833.dkr.ecr.ap-northeast-1.amazonaws.com/factify-fastapi",
-        "createdAt": "2025-06-07T09:21:49.408000+09:00",
-        "imageTagMutability": "MUTABLE"
+    "Location": "https://cloudfront.amazonaws.com/2020-05-31/distribution/E2ZAN0145JGOOO/invalidation/IE2MU74FVMW66KTSJTY2RNUE9X",
+    "Invalidation": {
+        "Id": "IE2MU74FVMW66KTSJTY2RNUE9X",
+        "Status": "InProgress",
+        "CreateTime": "2025-06-07T02:27:02.106000+00:00",
+        "InvalidationBatch": {
+            "Paths": {
+                "Quantity": 1,
+                "Items": [
+                    "/*"
+                ]
+            },
+            "CallerReference": "cli-1749263221-100435"
+        }
     }
 }
+✨ デプロイ完了ですわ！最高のwebappを世界に解き放ちましたわ～！
+🌸 ECS Task Public IP: 43.207.218.12
+🌸 API Endpoint: https://43.207.218.12

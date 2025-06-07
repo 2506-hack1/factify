@@ -74,10 +74,10 @@ COGNITO_CLIENT_ID=$(aws cloudformation describe-stacks \
   --output text)
 
 cat > .env.production << EOF
-REACT_APP_API_ENDPOINT=$API_ENDPOINT
-REACT_APP_COGNITO_USER_POOL_ID=$COGNITO_USER_POOL_ID
-REACT_APP_COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID
-REACT_APP_AWS_REGION=ap-northeast-1
+VITE_API_BASE_URL=$API_ENDPOINT
+VITE_USER_POOL_ID=$COGNITO_USER_POOL_ID
+VITE_USER_POOL_CLIENT_ID=$COGNITO_CLIENT_ID
+VITE_AWS_REGION=ap-northeast-1
 EOF
 
 echo "🌸 Cognito設定も含めて.env.productionを更新完了ですわ～！"
