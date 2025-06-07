@@ -1,113 +1,17 @@
-b'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n'
-b'!!                                                                                                                      !!\n'
-b'!!  This software has not been tested with node v23.9.0.                                                                !!\n'
-b'!!  Should you encounter odd runtime issues, please try using one of the supported release before filing a bug report.  !!\n'
-b'!!                                                                                                                      !!\n'
-b'!!  This software is currently running on node v23.9.0.                                                                 !!\n'
-b'!!  As of the current release of this software, supported node releases are:                                            !!\n'
-b'!!  - ^22.0.0 (Planned end-of-life: 2027-04-30)                                                                         !!\n'
-b'!!  - ^20.0.0 (Planned end-of-life: 2026-04-30)                                                                         !!\n'
-b'!!                                                                                                                      !!\n'
-b'!!  This warning can be silenced by setting the JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION environment variable.        !!\n'
-b'!!                                                                                                                      !!\n'
-b'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n'
-[WARNING] aws-cdk-lib.aws_cloudfront_origins.S3Origin is deprecated.
-  Use `S3BucketOrigin` or `S3StaticWebsiteOrigin` instead.
-  This API will be removed in the next major release.
-[WARNING] aws-cdk-lib.aws_cloudfront_origins.S3Origin#bind is deprecated.
-  Use `S3BucketOrigin` or `S3StaticWebsiteOrigin` instead.
-  This API will be removed in the next major release.
-Including dependency stacks: DbStorageStack, CognitoAuthStack
-
-✨  Synthesis time: 30.38s
-
-CognitoAuthStack
-CognitoAuthStack: deploying... [1/3]
-FastapiFargateCdkStack: start: Building FastapiFargateCdkStack Template
-FastapiFargateCdkStack: success: Built FastapiFargateCdkStack Template
-
- ✅  CognitoAuthStack (no changes)
-
-✨  Deployment time: 1.47s
-
-Outputs:
-CognitoAuthStack.ExportsOutputRefFactifyUserPool72589FCEFD3C8A50 = ap-northeast-1_djKleJ9sI
-CognitoAuthStack.ExportsOutputRefFactifyUserPoolFactifyWebClient0A73F09B3295E73C = 7vo039n3ss61uaiieqb1toi6sq
-CognitoAuthStack.UserPoolClientId = 7vo039n3ss61uaiieqb1toi6sq
-CognitoAuthStack.UserPoolId = ap-northeast-1_djKleJ9sI
-Stack ARN:
-arn:aws:cloudformation:ap-northeast-1:471112951833:stack/CognitoAuthStack/446168c0-4329-11f0-8a60-06022d561bd5
-
-✨  Total time: 31.85s
-
-DbStorageStack
-DbStorageStack: deploying... [2/3]
-
- ✅  DbStorageStack (no changes)
-
-✨  Deployment time: 0.99s
-
-Outputs:
-DbStorageStack.AccessLogsTableName = factify-access-logs-471112951833-ap-northeast-1
-DbStorageStack.DataS3BucketName = factify-s3-bucket-471112951833-ap-northeast-1
-DbStorageStack.DynamoDBTableName = factify-dynamodb-table-471112951833-ap-northeast-1
-DbStorageStack.ExportsOutputFnGetAttFactifyAccessLogsTable0C12AA6EArn78DC6064 = arn:aws:dynamodb:ap-northeast-1:471112951833:table/factify-access-logs-471112951833-ap-northeast-1
-DbStorageStack.ExportsOutputFnGetAttFactifyBucketD7FFCA10Arn980583CD = arn:aws:s3:::factify-s3-bucket-471112951833-ap-northeast-1
-DbStorageStack.ExportsOutputFnGetAttFactifyIncentiveSummaryTable82529B33Arn11F6D40B = arn:aws:dynamodb:ap-northeast-1:471112951833:table/factify-incentive-summary-471112951833-ap-northeast-1
-DbStorageStack.ExportsOutputFnGetAttFactifyTableC6921E75Arn3334F57F = arn:aws:dynamodb:ap-northeast-1:471112951833:table/factify-dynamodb-table-471112951833-ap-northeast-1
-DbStorageStack.ExportsOutputRefFactifyBucketD7FFCA107B590A86 = factify-s3-bucket-471112951833-ap-northeast-1
-DbStorageStack.ExportsOutputRefFactifyTableC6921E750E73C804 = factify-dynamodb-table-471112951833-ap-northeast-1
-DbStorageStack.IncentiveSummaryTableName = factify-incentive-summary-471112951833-ap-northeast-1
-Stack ARN:
-arn:aws:cloudformation:ap-northeast-1:471112951833:stack/DbStorageStack/52784820-4329-11f0-a974-06ac24406701
-
-✨  Total time: 31.37s
-
-FastapiFargateCdkStack: start: Publishing FastapiFargateCdkStack Template (471112951833-ap-northeast-1)
-FastapiFargateCdkStack: success: Published FastapiFargateCdkStack Template (471112951833-ap-northeast-1)
-FastapiFargateCdkStack
-FastapiFargateCdkStack: deploying... [3/3]
-FastapiFargateCdkStack: creating CloudFormation changeset...
-FastapiFargateCdkStack |  0/14 | 9:36:17 AM | UPDATE_IN_PROGRESS   | AWS::CloudFormation::Stack            | FastapiFargateCdkStack User Initiated
-FastapiFargateCdkStack |  0/14 | 9:36:22 AM | UPDATE_IN_PROGRESS   | AWS::CDK::Metadata                    | CDKMetadata/Default (CDKMetadata) 
-FastapiFargateCdkStack |  0/14 | 9:36:22 AM | UPDATE_IN_PROGRESS   | AWS::EC2::SecurityGroup               | ECSSecurityGroup (ECSSecurityGroupA14DBE7D) Requested update requires the creation of a new physical resource; hence creating one.
-FastapiFargateCdkStack |  1/14 | 9:36:23 AM | UPDATE_COMPLETE      | AWS::CDK::Metadata                    | CDKMetadata/Default (CDKMetadata) 
-FastapiFargateCdkStack |  1/14 | 9:36:25 AM | UPDATE_IN_PROGRESS   | AWS::EC2::SecurityGroup               | ECSSecurityGroup (ECSSecurityGroupA14DBE7D) Resource creation Initiated
-FastapiFargateCdkStack |  2/14 | 9:36:33 AM | UPDATE_COMPLETE      | AWS::EC2::SecurityGroup               | ECSSecurityGroup (ECSSecurityGroupA14DBE7D) 
-FastapiFargateCdkStack |  2/14 | 9:36:35 AM | UPDATE_IN_PROGRESS   | AWS::ECS::Service                     | FastApiService/Service (FastApiServiceDDD840D7) 
-FastapiFargateCdkStack |  3/14 | 9:38:38 AM | UPDATE_COMPLETE      | AWS::ECS::Service                     | FastApiService/Service (FastApiServiceDDD840D7) 
-FastapiFargateCdkStack |  4/14 | 9:38:40 AM | UPDATE_COMPLETE_CLEA | AWS::CloudFormation::Stack            | FastapiFargateCdkStack 
-FastapiFargateCdkStack |  4/14 | 9:38:41 AM | DELETE_IN_PROGRESS   | AWS::ApiGatewayV2::Route              | FastApiHttpApiANYproxy555C6455 
-FastapiFargateCdkStack |  4/14 | 9:38:41 AM | DELETE_IN_PROGRESS   | AWS::EC2::SecurityGroup               | ECSSecurityGroup (ECSSecurityGroupA14DBE7D) 
-FastapiFargateCdkStack |  4/14 | 9:38:41 AM | DELETE_IN_PROGRESS   | AWS::ApiGatewayV2::Route              | FastApiHttpApiANY2056EEEA 
-FastapiFargateCdkStack |  4/14 | 9:38:41 AM | DELETE_IN_PROGRESS   | AWS::ApiGatewayV2::Stage              | FastApiHttpApiDefaultStage981F44CC 
-FastapiFargateCdkStack |  5/14 | 9:38:42 AM | DELETE_COMPLETE      | AWS::ApiGatewayV2::Route              | FastApiHttpApiANYproxy555C6455 
-FastapiFargateCdkStack |  6/14 | 9:38:43 AM | DELETE_COMPLETE      | AWS::ApiGatewayV2::Route              | FastApiHttpApiANY2056EEEA 
-FastapiFargateCdkStack |  7/14 | 9:38:43 AM | DELETE_COMPLETE      | AWS::ApiGatewayV2::Stage              | FastApiHttpApiDefaultStage981F44CC 
-FastapiFargateCdkStack |  7/14 | 9:38:43 AM | DELETE_IN_PROGRESS   | AWS::ApiGatewayV2::Integration        | FastApiHttpApiANYproxyFastApiNlbIntegration45E77DBA 
-FastapiFargateCdkStack |  8/14 | 9:38:45 AM | DELETE_COMPLETE      | AWS::ApiGatewayV2::Integration        | FastApiHttpApiANYproxyFastApiNlbIntegration45E77DBA 
-FastapiFargateCdkStack |  8/14 | 9:38:45 AM | DELETE_IN_PROGRESS   | AWS::ApiGatewayV2::Api                | FastApiHttpApi86B0A701 
-FastapiFargateCdkStack |  8/14 | 9:38:45 AM | DELETE_IN_PROGRESS   | AWS::ElasticLoadBalancingV2::Listener | FastApiNLBFastApiListenerE18DFC3C 
-FastapiFargateCdkStack |  8/14 | 9:38:45 AM | DELETE_IN_PROGRESS   | AWS::ApiGatewayV2::VpcLink            | FastApiVpcLinkF9ACFB65 
-FastapiFargateCdkStack |  9/14 | 9:38:46 AM | DELETE_COMPLETE      | AWS::ElasticLoadBalancingV2::Listener | FastApiNLBFastApiListenerE18DFC3C 
-FastapiFargateCdkStack | 10/14 | 9:38:47 AM | DELETE_COMPLETE      | AWS::ApiGatewayV2::VpcLink            | FastApiVpcLinkF9ACFB65 
-FastapiFargateCdkStack | 10/14 | 9:38:47 AM | DELETE_IN_PROGRESS   | AWS::ElasticLoadBalancingV2::TargetGroup | FastApiTargetGroup68D7EB5B 
-FastapiFargateCdkStack | 10/14 | 9:38:47 AM | DELETE_IN_PROGRESS   | AWS::ElasticLoadBalancingV2::LoadBalancer | FastApiNLBEEFB0B22 
-FastapiFargateCdkStack | 11/14 | 9:38:47 AM | DELETE_COMPLETE      | AWS::ApiGatewayV2::Api                | FastApiHttpApi86B0A701 
-FastapiFargateCdkStack | 12/14 | 9:38:48 AM | DELETE_COMPLETE      | AWS::ElasticLoadBalancingV2::TargetGroup | FastApiTargetGroup68D7EB5B 
-FastapiFargateCdkStack | 13/14 | 9:39:48 AM | DELETE_COMPLETE      | AWS::ElasticLoadBalancingV2::LoadBalancer | FastApiNLBEEFB0B22 
-FastapiFargateCdkStack | 12/14 | 9:40:44 AM | DELETE_COMPLETE      | AWS::EC2::SecurityGroup               | ECSSecurityGroup (ECSSecurityGroupA14DBE7D) 
-FastapiFargateCdkStack | 13/14 | 9:40:44 AM | UPDATE_COMPLETE      | AWS::CloudFormation::Stack            | FastapiFargateCdkStack 
-
- ✅  FastapiFargateCdkStack
-
-✨  Deployment time: 284.09s
-
-Outputs:
-FastapiFargateCdkStack.ECSClusterName = fastapi-cluster
-FastapiFargateCdkStack.ECSServiceName = FastapiFargateCdkStack-FastApiServiceDDD840D7-YbU7Foh8hgcM
-Stack ARN:
-arn:aws:cloudformation:ap-northeast-1:471112951833:stack/FastapiFargateCdkStack/60411110-4335-11f0-91ec-0ebd366a0be5
-
-✨  Total time: 314.47s
-
+{
+    "Location": "https://cloudfront.amazonaws.com/2020-05-31/distribution/E2ZAN0145JGOOO/invalidation/I6F6H24B573NKKWK5RTF3YIBV8",
+    "Invalidation": {
+        "Id": "I6F6H24B573NKKWK5RTF3YIBV8",
+        "Status": "InProgress",
+        "CreateTime": "2025-06-07T01:14:20.446000+00:00",
+        "InvalidationBatch": {
+            "Paths": {
+                "Quantity": 1,
+                "Items": [
+                    "/*"
+                ]
+            },
+            "CallerReference": "cli-1749258859-227171"
+        }
+    }
+}

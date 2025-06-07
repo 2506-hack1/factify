@@ -5,8 +5,8 @@
 
 export const COGNITO_CONFIG = {
   REGION: 'ap-northeast-1',
-  USER_POOL_ID: 'ap-northeast-1_GVKrqAF1Z',
-  USER_POOL_CLIENT_ID: '4206891n3vq05t63etnh99qcsr',
+  USER_POOL_ID: 'ap-northeast-1_djKleJ9sI',
+  USER_POOL_CLIENT_ID: '7vo039n3ss61uaiieqb1toi6sq',
 } as const;
 
 // タイプ安全性のための型定義

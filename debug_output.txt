@@ -1,18 +1,10 @@
-[
-    {
-        "ListenerArn": "arn:aws:elasticloadbalancing:ap-northeast-1:471112951833:listener/net/fastapi-nlb/2fc6057deba90167/3fabeb42f27111ce",
-        "Port": 80,
-        "Protocol": "TCP",
-        "DefaultActions": {
-            "Type": "forward",
-            "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-northeast-1:471112951833:targetgroup/Fastap-FastA-YRRMEFJ8DKO1/feef4dd800f7ed01",
-            "ForwardConfig": {
-                "TargetGroups": [
-                    {
-                        "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-northeast-1:471112951833:targetgroup/Fastap-FastA-YRRMEFJ8DKO1/feef4dd800f7ed01"
-                    }
-                ]
-            }
-        }
+{
+    "repository": {
+        "repositoryArn": "arn:aws:ecr:ap-northeast-1:471112951833:repository/factify-fastapi",
+        "registryId": "471112951833",
+        "repositoryName": "factify-fastapi",
+        "repositoryUri": "471112951833.dkr.ecr.ap-northeast-1.amazonaws.com/factify-fastapi",
+        "createdAt": "2025-06-07T09:21:49.408000+09:00",
+        "imageTagMutability": "MUTABLE"
     }
-]
+}

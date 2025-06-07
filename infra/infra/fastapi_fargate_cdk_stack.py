@@ -17,7 +17,7 @@ class FastapiFargateCdkStack(Stack):
 
         # ECR Repository with lifecycle policy
         ecr_repo = ecr.Repository(self, "FastApiECRRepo",
-            repository_name="factify-fastapi",
+            repository_name=f"factify-fastapi-{construct_id.lower()}",
             lifecycle_rules=[
                 ecr.LifecycleRule(
                     max_image_count=10,

@@ -2,7 +2,7 @@
 # Cognitoアクセストークン取得ヘルパースクリプト
 
 USER_POOL_ID=ap-northeast-1_GVKrqAF1Z
-CLIENT_ID=4206891n3vq05t63etnh99qcsr
+CLIENT_ID=7vo039n3ss61uaiieqb1toi6sq
 REGION=ap-northeast-1
 
 # ユーザー情報の入力

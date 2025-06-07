@@ -1,0 +1,22 @@
+[
+    {
+        "OutputKey": "UserPoolClientId",
+        "OutputValue": "7vo039n3ss61uaiieqb1toi6sq",
+        "Description": "Cognito User Pool Client ID"
+    },
+    {
+        "OutputKey": "ExportsOutputRefFactifyUserPool72589FCEFD3C8A50",
+        "OutputValue": "ap-northeast-1_djKleJ9sI",
+        "ExportName": "CognitoAuthStack:ExportsOutputRefFactifyUserPool72589FCEFD3C8A50"
+    },
+    {
+        "OutputKey": "ExportsOutputRefFactifyUserPoolFactifyWebClient0A73F09B3295E73C",
+        "OutputValue": "7vo039n3ss61uaiieqb1toi6sq",
+        "ExportName": "CognitoAuthStack:ExportsOutputRefFactifyUserPoolFactifyWebClient0A73F09B3295E73C"
+    },
+    {
+        "OutputKey": "UserPoolId",
+        "OutputValue": "ap-northeast-1_djKleJ9sI",
+        "Description": "Cognito User Pool ID"
+    }
+]

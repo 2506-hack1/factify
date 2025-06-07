@@ -61,9 +61,26 @@ echo "🌸 取得したECSタスクのパブリックIP: $PUBLIC_IP"
 # 3. .env.productionを更新
 cd ../webapp
 echo "🌸 .env.productionを更新いたしますわ～！"
+
+# Cognito設定を取得
+COGNITO_USER_POOL_ID=$(aws cloudformation describe-stacks \
+  --stack-name CognitoAuthStack \
+  --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
+  --output text)
+
+COGNITO_CLIENT_ID=$(aws cloudformation describe-stacks \
+  --stack-name CognitoAuthStack \
+  --query 'Stacks[0].Outputs[?OutputKey==`UserPoolClientId`].OutputValue' \
+  --output text)
+
 cat > .env.production << EOF
 REACT_APP_API_ENDPOINT=$API_ENDPOINT
+REACT_APP_COGNITO_USER_POOL_ID=$COGNITO_USER_POOL_ID
+REACT_APP_COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID
+REACT_APP_AWS_REGION=ap-northeast-1
 EOF
+
+echo "🌸 Cognito設定も含めて.env.productionを更新完了ですわ～！"
 
 # 4. webappビルド
 echo "🌸 webappのビルド開始ですわ～！"
