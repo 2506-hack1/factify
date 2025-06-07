@@ -10,7 +10,10 @@ class ApiClient {
   private client: AxiosInstance;
 
   constructor(config: ApiConfig) {
-    this.client = axios.create(config);
+    this.client = axios.create({
+      ...config,
+      withCredentials: false, // HTTPOnlyクッキーを送信しない
+    });
     this.setupInterceptors();
   }
 

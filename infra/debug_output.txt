@@ -1,17 +1,1 @@
-{
-    "Location": "https://cloudfront.amazonaws.com/2020-05-31/distribution/E2ZAN0145JGOOO/invalidation/I6F6H24B573NKKWK5RTF3YIBV8",
-    "Invalidation": {
-        "Id": "I6F6H24B573NKKWK5RTF3YIBV8",
-        "Status": "InProgress",
-        "CreateTime": "2025-06-07T01:14:20.446000+00:00",
-        "InvalidationBatch": {
-            "Paths": {
-                "Quantity": 1,
-                "Items": [
-                    "/*"
-                ]
-            },
-            "CallerReference": "cli-1749258859-227171"
-        }
-    }
-}
+{"status":"healthy","timestamp":"2025-06-07T01:41:13.223673","version":"1.0.0"}

@@ -1,22 +1,29 @@
-[
-    {
-        "OutputKey": "UserPoolClientId",
-        "OutputValue": "7vo039n3ss61uaiieqb1toi6sq",
-        "Description": "Cognito User Pool Client ID"
-    },
-    {
-        "OutputKey": "ExportsOutputRefFactifyUserPool72589FCEFD3C8A50",
-        "OutputValue": "ap-northeast-1_djKleJ9sI",
-        "ExportName": "CognitoAuthStack:ExportsOutputRefFactifyUserPool72589FCEFD3C8A50"
-    },
-    {
-        "OutputKey": "ExportsOutputRefFactifyUserPoolFactifyWebClient0A73F09B3295E73C",
-        "OutputValue": "7vo039n3ss61uaiieqb1toi6sq",
-        "ExportName": "CognitoAuthStack:ExportsOutputRefFactifyUserPoolFactifyWebClient0A73F09B3295E73C"
-    },
-    {
-        "OutputKey": "UserPoolId",
-        "OutputValue": "ap-northeast-1_djKleJ9sI",
-        "Description": "Cognito User Pool ID"
-    }
-]
+*   Trying 54.178.89.135:80...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Connected to 54.178.89.135 (54.178.89.135) port 80 (#0)
+> OPTIONS /search HTTP/1.1
+> Host: 54.178.89.135
+> User-Agent: curl/7.81.0
+> Accept: */*
+> Origin: https://d115mxahwr1zny.cloudfront.net
+> Access-Control-Request-Method: POST
+> Access-Control-Request-Headers: Content-Type
+> 
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< date: Sat, 07 Jun 2025 01:50:00 GMT
+< server: uvicorn
+< vary: Origin
+< access-control-allow-methods: GET, POST, PUT, DELETE, OPTIONS
+< access-control-max-age: 600
+< access-control-allow-credentials: true
+< access-control-allow-origin: https://d115mxahwr1zny.cloudfront.net
+< access-control-allow-headers: Content-Type
+< content-length: 2
+< content-type: text/plain; charset=utf-8
+< 
+{ [2 bytes data]
+100     2  100     2    0     0     25      0 --:--:-- --:--:-- --:--:--    25
+* Connection #0 to host 54.178.89.135 left intact
+OK

@@ -53,7 +53,7 @@ const SearchDebug: React.FC = () => {
   } | null>(null);
   const [activeTab, setActiveTab] = useState<'main' | 'debug'>('main');
 
-  const API_BASE_URL = 'http://localhost:8001';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
 
   const performMainSearch = async () => {
     if (!query.trim()) return;
@@ -69,6 +69,7 @@ const SearchDebug: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ query: query.trim(), size }),
+        credentials: 'omit', // HTTPOnlyクッキーを送信しない
       });
 
       if (!response.ok) {
@@ -107,6 +108,7 @@ const SearchDebug: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ query: query.trim(), size }),
+        credentials: 'omit', // HTTPOnlyクッキーを送信しない
       });
 
       if (!response.ok) {

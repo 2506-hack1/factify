@@ -40,10 +40,6 @@ class OpenSearchStack(Stack):
                     master_user_password="TempPassword123!"  # デモ用パスワード
                 )
             ),
-            # HTTPS必須
-            domain_endpoint_options=opensearch.CfnDomain.DomainEndpointOptionsProperty(
-                enforce_https=True
-            ),
             # ノード間暗号化
             node_to_node_encryption_options=opensearch.CfnDomain.NodeToNodeEncryptionOptionsProperty(
                 enabled=True

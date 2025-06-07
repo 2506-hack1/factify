@@ -32,7 +32,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173", 
         "http://127.0.0.1:5173",  # 開発用
-        "https://d2gf2wvyuful49.cloudfront.net"  # 本番用CloudFront
+        "https://d115mxahwr1zny.cloudfront.net"  # 本番用CloudFront
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
