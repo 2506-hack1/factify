@@ -3,9 +3,6 @@ from aws_cdk import (
     aws_ecs as ecs,
     aws_ec2 as ec2,
     aws_ecr as ecr,
-    aws_elasticloadbalancingv2 as elbv2,
-    aws_apigatewayv2 as apigw,
-    aws_apigatewayv2_integrations as integrations,
     CfnOutput,
     Duration,
 )
@@ -121,115 +118,52 @@ class FastapiFargateCdkStack(Stack):
             ecs.PortMapping(container_port=80, host_port=80, protocol=ecs.Protocol.TCP)
         )
 
-        # 7. Network Load Balancer for API Gateway Integration
-        # API Gateway HTTP API からアクセスするためのNetwork Load Balancer
-        nlb = elbv2.NetworkLoadBalancer(self, "FastApiNLB",
-            vpc=vpc,
-            internet_facing=False,  # VPC内部からのアクセスのみ
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
-            load_balancer_name="fastapi-nlb"
-        )
-        
-        # Target Group for ECS Service
-        target_group = elbv2.NetworkTargetGroup(self, "FastApiTargetGroup",
-            port=80,
-            target_type=elbv2.TargetType.IP,
-            vpc=vpc,
-            protocol=elbv2.Protocol.TCP
-        )
-        
-        # Listener for NLB
-        listener = nlb.add_listener("FastApiListener",
-            port=80,
-            default_target_groups=[target_group]
-        )
-
-        # 8. Security Group for ECS Service (API Gateway経由アクセス用に変更)
-        # ECS サービスのセキュリティグループを定義（NLB経由のアクセスを許可）
+        # 8. Security Group for ECS Service (直接アクセス用)
+        # ECS サービスのセキュリティグループを定義（インターネットからの直接アクセスを許可）
         ecs_security_group = ec2.SecurityGroup(self, "ECSSecurityGroup",
             vpc=vpc,
-            description="Security group for ECS service - NLB access",
+            description="Security group for ECS service - Direct Internet access",
             allow_all_outbound=True
         )
-        # NLBからのHTTPトラフィックを許可
+        # インターネットからのHTTPトラフィックを許可
         ecs_security_group.add_ingress_rule(
-            ec2.Peer.ipv4(vpc.vpc_cidr_block),
+            ec2.Peer.any_ipv4(),
             ec2.Port.tcp(80),
-            "Allow HTTP traffic from VPC (NLB)"
+            "Allow HTTP traffic from Internet"
         )
 
-        # 9. ECS Fargate Service (NLB統合版) with optimized deployment
+        # 9. ECS Fargate Service (直接アクセス版) with optimized deployment
         # Fargate サービスを作成し、ECS クラスターにタスク定義をデプロイ
         service = ecs.FargateService(self, "FastApiService",
             cluster=cluster,
             task_definition=task_definition,
             desired_count=1,  # 常時1つのタスクを稼働
             security_groups=[ecs_security_group],
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),  # Privateサブネットで実行
-            assign_public_ip=False,  # プライベートサブネットではパブリックIP不要
-            # CDK v2では個別にプロパティを設定
-            deployment_configuration=ecs.DeploymentConfiguration(
-                maximum_percent=200,
-                minimum_healthy_percent=0  # Allow faster deployments
-            ),
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),  # パブリックサブネットで実行
+            assign_public_ip=True,  # パブリックIPを割り当て
+            # CDK v2では deployment_configuration は直接指定
+            max_healthy_percent=200,
+            min_healthy_percent=0,  # Allow faster deployments
             enable_execute_command=True  # For debugging
         )
         
-        # ECS ServiceをNLBのTarget Groupに登録
-        service.attach_to_network_target_group(target_group)
+        # ECS ServiceをTarget Groupに登録する必要がなくなりました（直接アクセスのため）
 
-        # 10. API Gateway HTTP API with VPC Link
-        # VPC Link for API Gateway to connect to NLB in VPC
-        vpc_link = apigw.VpcLink(self, "FastApiVpcLink",
-            vpc=vpc
-        )
-        
-        # HTTP API Gateway
-        http_api = apigw.HttpApi(self, "FastApiHttpApi",
-            api_name="factify-fastapi-gateway",
-            description="HTTP API Gateway for FastAPI backend",
-            cors_preflight=apigw.CorsPreflightOptions(
-                allow_origins=["*"],  # 本番環境では特定のドメインに制限
-                allow_methods=[apigw.CorsHttpMethod.ANY],
-                allow_headers=["*"],
-                max_age=Duration.days(10)
-            )
-        )
-        
-        # Integration with NLB through VPC Link
-        nlb_integration = integrations.HttpNlbIntegration(
-            "FastApiNlbIntegration", 
-            listener=listener,
-            vpc_link=vpc_link
-        )
-        
-        # Add routes to proxy all requests to FastAPI
-        http_api.add_routes(
-            path="/{proxy+}",
-            methods=[apigw.HttpMethod.ANY],
-            integration=nlb_integration
-        )
-        
-        # Add root path route
-        http_api.add_routes(
-            path="/",
-            methods=[apigw.HttpMethod.ANY], 
-            integration=nlb_integration
-        )
         # 11. DbStorageStackが指定されている場合、タスクロールにS3とDynamoDBへのアクセス権限を付与
         if db_storage_stack:
             db_storage_stack.grant_access_to_task_role(task_definition.task_role)
 
         # 12. Outputs
-        CfnOutput(self, "ApiGatewayUrl",
-            value=http_api.url,
-            description="API Gateway HTTP API URL for FastAPI backend"
+        # ECSタスクのパブリックIPは動的に変わるため、クラスター情報を出力
+        CfnOutput(self, "ECSClusterName",
+            value=cluster.cluster_name,
+            description="ECS Cluster name to find task public IP"
         )
         
-        CfnOutput(self, "NLBDnsName",
-            value=nlb.load_balancer_dns_name,
-            description="Network Load Balancer DNS name"
+        CfnOutput(self, "ECSServiceName", 
+            value=service.service_name,
+            description="ECS Service name"
         )
 
-        # Store API endpoint for S3CloudFrontStack
-        self.api_endpoint = http_api.url
+        # Store ECS cluster info for S3CloudFrontStack  
+        self.api_endpoint = None  # 直接アクセスのためAPI Gatewayエンドポイントは不要

@@ -1,0 +1,18 @@
+[
+    {
+        "ListenerArn": "arn:aws:elasticloadbalancing:ap-northeast-1:471112951833:listener/net/fastapi-nlb/2fc6057deba90167/3fabeb42f27111ce",
+        "Port": 80,
+        "Protocol": "TCP",
+        "DefaultActions": {
+            "Type": "forward",
+            "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-northeast-1:471112951833:targetgroup/Fastap-FastA-YRRMEFJ8DKO1/feef4dd800f7ed01",
+            "ForwardConfig": {
+                "TargetGroups": [
+                    {
+                        "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-northeast-1:471112951833:targetgroup/Fastap-FastA-YRRMEFJ8DKO1/feef4dd800f7ed01"
+                    }
+                ]
+            }
+        }
+    }
+]

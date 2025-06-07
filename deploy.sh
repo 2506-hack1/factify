@@ -8,25 +8,61 @@ cd ./infra
 echo "🌸 CDKデプロイを実行いたしますわ～！"
 cdk deploy --all
 
-# 2. API Gateway URLを取得
-echo "🌸 API Gateway URLを取得いたしますわ～！"
-API_GATEWAY_URL=$(aws cloudformation describe-stacks \
+# 2. ECSタスクのパブリックIPを取得
+echo "🌸 ECSタスクのパブリックIPを取得いたしますわ～！"
+
+# ECSクラスター名とサービス名を取得
+ECS_CLUSTER_NAME=$(aws cloudformation describe-stacks \
   --stack-name FastapiFargateCdkStack \
-  --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
+  --query 'Stacks[0].Outputs[?OutputKey==`ECSClusterName`].OutputValue' \
   --output text)
 
-if [ -z "$API_GATEWAY_URL" ]; then
-  echo "❌ API Gateway URLの取得に失敗いたしましたわ！"
+ECS_SERVICE_NAME=$(aws cloudformation describe-stacks \
+  --stack-name FastapiFargateCdkStack \
+  --query 'Stacks[0].Outputs[?OutputKey==`ECSServiceName`].OutputValue' \
+  --output text)
+
+# タスクARNを取得
+TASK_ARN=$(aws ecs list-tasks \
+  --cluster $ECS_CLUSTER_NAME \
+  --service-name $ECS_SERVICE_NAME \
+  --region ap-northeast-1 \
+  --query 'taskArns[0]' \
+  --output text)
+
+if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
+  echo "❌ ECSタスクが見つかりませんでしたわ！"
   exit 1
 fi
 
-echo "🌸 取得したAPI Gateway URL: $API_GATEWAY_URL"
+# ネットワークインターフェースIDを取得
+ENI_ID=$(aws ecs describe-tasks \
+  --cluster $ECS_CLUSTER_NAME \
+  --tasks $TASK_ARN \
+  --region ap-northeast-1 \
+  --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' \
+  --output text)
+
+# パブリックIPを取得
+PUBLIC_IP=$(aws ec2 describe-network-interfaces \
+  --network-interface-ids $ENI_ID \
+  --region ap-northeast-1 \
+  --query 'NetworkInterfaces[0].Association.PublicIp' \
+  --output text)
+
+if [ -z "$PUBLIC_IP" ] || [ "$PUBLIC_IP" = "None" ]; then
+  echo "❌ パブリックIPの取得に失敗いたしましたわ！"
+  exit 1
+fi
+
+API_ENDPOINT="http://$PUBLIC_IP"
+echo "🌸 取得したECSタスクのパブリックIP: $PUBLIC_IP"
 
 # 3. .env.productionを更新
 cd ../webapp
 echo "🌸 .env.productionを更新いたしますわ～！"
 cat > .env.production << EOF
-REACT_APP_API_ENDPOINT=$API_GATEWAY_URL
+REACT_APP_API_ENDPOINT=$API_ENDPOINT
 EOF
 
 # 4. webappビルド
@@ -40,9 +76,10 @@ echo "🌸 S3へアップロードいたしますわ～！"
 aws s3 sync dist/ s3://$S3_BUCKET --delete
 
 # 6. CloudFrontキャッシュ無効化
-CLOUDFRONT_ID="E3ERDWFXSIG6CL"
+CLOUDFRONT_ID="E2ZAN0145JGOOO"
 echo "🌸 CloudFrontキャッシュを無効化いたしますわ～！"
 aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_ID --paths '/*'
 
 echo "✨ デプロイ完了ですわ！最高のwebappを世界に解き放ちましたわ～！"
-echo "🌸 API Gateway URL: $API_GATEWAY_URL"
+echo "🌸 ECS Task Public IP: $PUBLIC_IP"
+echo "🌸 API Endpoint: $API_ENDPOINT"
